@@ -1,0 +1,903 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Terrário Virtual — SESI-SP</title>
+<script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:Calibri,sans-serif;background:#f4f8fc;color:#1a1a2e;min-height:100vh}
+header{background:#004b8d;color:white;padding:12px 16px;display:flex;align-items:center;gap:10px;position:sticky;top:0;z-index:10}
+header h1{font-size:1.15rem;flex:1}
+.btn-back{background:rgba(255,255,255,.2);border:none;color:white;border-radius:8px;padding:6px 12px;cursor:pointer;font-size:.9rem;font-family:Calibri,sans-serif}
+.banner-fallback{background:#f5821f;color:white;padding:9px 16px;font-size:.85rem;text-align:center}
+.alert-error{background:#fce4ec;color:#b71c1c;padding:10px 14px;font-size:.88rem;border-radius:8px;margin:8px 0;border-left:4px solid #c62828}
+main{padding:16px;max-width:560px;margin:0 auto}
+.card{background:white;border-radius:14px;padding:20px;margin-bottom:14px;box-shadow:0 2px 8px rgba(0,0,0,.07)}
+.btn{display:inline-block;padding:11px 22px;border-radius:10px;border:none;cursor:pointer;font-family:Calibri,sans-serif;font-size:1rem;font-weight:bold;transition:opacity .15s}
+.btn:disabled{opacity:.45;cursor:not-allowed}
+.btn-primary{background:#004b8d;color:white;width:100%}
+.btn-accent{background:#f5821f;color:white}
+.btn-sm{padding:7px 14px;font-size:.9rem}
+.btn-outline{background:white;color:#004b8d;border:2px solid #004b8d}
+.form-group{margin-bottom:14px}
+.form-group label{display:block;font-weight:bold;margin-bottom:5px;color:#004b8d;font-size:.95rem}
+.form-group input,.form-group textarea{width:100%;padding:10px 13px;border:2px solid #dce8f5;border-radius:10px;font-family:Calibri,sans-serif;font-size:1rem;background:#f4f8fc;transition:border-color .15s}
+.form-group input:focus,.form-group textarea:focus{outline:none;border-color:#004b8d}
+.form-group textarea{min-height:80px;resize:vertical}
+.plant-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:8px}
+.plant-opt{border:2.5px solid #dce8f5;border-radius:12px;padding:14px 8px;text-align:center;cursor:pointer;background:white;transition:all .15s}
+.plant-opt:hover{border-color:#004b8d}
+.plant-opt.selected{border-color:#f5821f;background:#fff5ee}
+.plant-opt .pname{font-weight:bold;font-size:.9rem;color:#004b8d;margin-top:6px}
+.equipe-card{background:white;border-radius:12px;padding:15px;margin-bottom:10px;box-shadow:0 2px 6px rgba(0,0,0,.07);cursor:pointer;border-left:4px solid #004b8d;transition:transform .15s}
+.equipe-card:hover{transform:translateX(3px)}
+.equipe-card h3{color:#004b8d;margin-bottom:3px}
+.equipe-card .meta{font-size:.83rem;color:#666}
+.progress-wrap{background:#dce8f5;border-radius:10px;height:10px;margin:10px 0;overflow:hidden}
+.progress-fill{background:#f5821f;height:100%;border-radius:10px;transition:width .4s ease}
+.tabs{display:flex;gap:0;margin-bottom:14px;border-radius:10px;overflow:hidden;background:#dce8f5;padding:4px}
+.tab-btn{flex:1;padding:9px;background:transparent;border:none;border-radius:8px;cursor:pointer;font-family:Calibri,sans-serif;font-size:.97rem;font-weight:bold;color:#666;transition:all .2s}
+.tab-btn.active{background:white;color:#004b8d;box-shadow:0 1px 4px rgba(0,0,0,.1)}
+.svg-wrap{text-align:center;margin:12px 0}
+.svg-wrap svg{max-width:220px;width:100%}
+.screen{display:none}
+.screen.active{display:block}
+.radio-group{display:flex;gap:18px;margin-top:5px}
+.radio-group label{display:flex;align-items:center;gap:6px;font-weight:normal;cursor:pointer;color:inherit;font-size:.95rem}
+.radio-group input[type=radio]{width:auto}
+.diario-entry{background:#f4f8fc;border-radius:10px;padding:11px;margin-bottom:9px;border-left:3px solid #004b8d}
+.diario-entry .ddate{font-size:.78rem;color:#888;margin-bottom:3px}
+.diario-entry .dobs{font-size:.93rem}
+.diario-entry .badges{margin-top:5px;display:flex;gap:7px;flex-wrap:wrap}
+.badge{font-size:.73rem;padding:2px 8px;border-radius:20px;font-weight:bold}
+.badge-mudou{background:#e8f5e9;color:#2e7d32}
+.badge-gotinhas{background:#e3f2fd;color:#1565c0}
+.step-ind{text-align:center;color:#888;font-size:.88rem;margin-bottom:2px}
+.water-status{text-align:center;padding:9px;border-radius:10px;margin:8px 0;font-weight:bold;font-size:.95rem}
+.wok{background:#e3f2fd;color:#1565c0}
+.wwarn{background:#fff3e0;color:#e65100}
+.wdanger{background:#fce4ec;color:#c62828}
+h2{color:#004b8d;margin-bottom:14px}
+h3{color:#004b8d}
+.page-title{font-size:1.25rem;font-weight:bold;color:#004b8d;margin-bottom:3px}
+.turma-badge{display:inline-block;background:#004b8d;color:white;border-radius:20px;padding:2px 12px;font-size:.83rem;margin-bottom:14px}
+.empty-state{text-align:center;color:#aaa;padding:30px 0;font-size:1rem;line-height:1.6}
+.growth-label{text-align:center;font-size:.83rem;color:#666;margin-top:3px}
+.step-title{text-align:center;font-size:1.05rem;font-weight:bold;color:#004b8d;margin:10px 0 4px}
+.step-desc{text-align:center;color:#555;margin-bottom:14px;font-size:.95rem;line-height:1.5}
+.turmas-recentes{margin-top:4px}
+.turmas-recentes h4{font-size:.88rem;color:#888;margin-bottom:8px}
+.success-banner{background:#e8f5e9;color:#2e7d32;border-radius:10px;padding:12px;text-align:center;font-weight:bold;margin-bottom:12px}
+</style>
+</head>
+<body>
+
+<div id="banner-fallback" class="banner-fallback" style="display:none">
+  ⚠️ Modo de demonstração — dados ficam só nesta sessão (Firebase não configurado).
+</div>
+
+<header>
+  <button class="btn-back" id="btn-back" style="display:none" onclick="goBack()">← Voltar</button>
+  <h1 id="header-title">🌿 Terrário Virtual</h1>
+</header>
+
+<!-- HOME -->
+<div id="screen-home" class="screen active">
+<main>
+  <div style="text-align:center;padding:24px 0 14px">
+    <div style="font-size:3rem">🌿</div>
+    <h2 style="font-size:1.5rem">Terrário Virtual</h2>
+    <p style="color:#666;margin-top:6px;font-size:.95rem">Projeto SESI-SP — Terrário em Equipe</p>
+  </div>
+  <div class="card">
+    <div class="form-group">
+      <label for="inp-turma">Qual é a sua turma?</label>
+      <input type="text" id="inp-turma" placeholder="Ex: 1A, 2B, Turma da Manhã…"
+             onkeydown="if(event.key==='Enter')entrarTurma()">
+    </div>
+    <button class="btn btn-primary" onclick="entrarTurma()">Entrar na Turma →</button>
+    <div id="turmas-recentes" class="turmas-recentes" style="display:none;margin-top:14px">
+      <h4>Turmas recentes:</h4>
+      <div id="lista-turmas-rec"></div>
+    </div>
+  </div>
+</main>
+</div>
+
+<!-- TURMA -->
+<div id="screen-turma" class="screen">
+<main>
+  <div class="page-title" id="turma-title"></div>
+  <div class="turma-badge" id="turma-badge"></div>
+  <button class="btn btn-accent btn-sm" style="margin-bottom:14px" onclick="irCriarEquipe()">+ Nova Equipe</button>
+  <div id="err-turma" class="alert-error" style="display:none"></div>
+  <div id="lista-equipes"><div class="empty-state">Carregando…</div></div>
+</main>
+</div>
+
+<!-- CRIAR EQUIPE -->
+<div id="screen-criar" class="screen">
+<main>
+  <div class="card">
+    <h2>Nova Equipe 🌱</h2>
+    <div id="err-criar" class="alert-error" style="display:none"></div>
+    <div class="form-group">
+      <label for="inp-nome">Nome da equipe *</label>
+      <input type="text" id="inp-nome" placeholder="Ex: Equipe Verde, Os Botânicos…">
+    </div>
+    <div class="form-group">
+      <label for="inp-int">Integrantes (opcional)</label>
+      <input type="text" id="inp-int" placeholder="Ex: Ana, João, Maria, Pedro">
+    </div>
+    <div class="form-group">
+      <label for="inp-frase">Frase para a casinha</label>
+      <input type="text" id="inp-frase" placeholder="Ex: A natureza é vida!">
+    </div>
+    <div class="form-group">
+      <label>Escolha a planta *</label>
+      <div class="plant-grid">
+        <div class="plant-opt" id="opt-samambaia" onclick="selectPlanta('samambaia')">
+          <svg width="60" height="60" viewBox="0 0 60 60">
+            <path d="M30 54 Q18 40 12 26 Q20 33 30 46" fill="#4caf50"/>
+            <path d="M30 54 Q42 40 48 26 Q40 33 30 46" fill="#66bb6a"/>
+            <path d="M30 54 Q16 44 10 32 Q19 37 30 48" fill="#388e3c"/>
+            <path d="M30 54 Q44 44 50 32 Q41 37 30 48" fill="#4caf50"/>
+            <path d="M30 54 Q22 46 18 38 Q24 41 30 50" fill="#66bb6a"/>
+          </svg>
+          <div class="pname">Samambaia</div>
+        </div>
+        <div class="plant-opt" id="opt-suculenta" onclick="selectPlanta('suculenta')">
+          <svg width="60" height="60" viewBox="0 0 60 60">
+            <ellipse cx="30" cy="42" rx="8" ry="11" fill="#8bc34a"/>
+            <ellipse cx="18" cy="44" rx="6" ry="9" fill="#9ccc65" transform="rotate(-18 18 44)"/>
+            <ellipse cx="42" cy="44" rx="6" ry="9" fill="#9ccc65" transform="rotate(18 42 44)"/>
+            <ellipse cx="21" cy="37" rx="5" ry="7" fill="#aed581" transform="rotate(-35 21 37)"/>
+            <ellipse cx="39" cy="37" rx="5" ry="7" fill="#aed581" transform="rotate(35 39 37)"/>
+            <ellipse cx="30" cy="34" rx="5" ry="7" fill="#c5e1a5"/>
+          </svg>
+          <div class="pname">Suculenta</div>
+        </div>
+        <div class="plant-opt" id="opt-feijao" onclick="selectPlanta('feijao')">
+          <svg width="60" height="60" viewBox="0 0 60 60">
+            <line x1="30" y1="54" x2="30" y2="18" stroke="#795548" stroke-width="2.5"/>
+            <ellipse cx="21" cy="36" rx="9" ry="6" fill="#66bb6a" transform="rotate(-30 21 36)"/>
+            <ellipse cx="39" cy="28" rx="9" ry="6" fill="#4caf50" transform="rotate(30 39 28)"/>
+            <ellipse cx="24" cy="20" rx="8" ry="5" fill="#81c784" transform="rotate(-20 24 20)"/>
+            <ellipse cx="36" cy="16" rx="7" ry="4" fill="#66bb6a" transform="rotate(20 36 16)"/>
+          </svg>
+          <div class="pname">Feijão</div>
+        </div>
+        <div class="plant-opt" id="opt-avenca" onclick="selectPlanta('avenca')">
+          <svg width="60" height="60" viewBox="0 0 60 60">
+            <path d="M30 54 Q24 44 18 34" stroke="#795548" stroke-width="1.5" fill="none"/>
+            <path d="M30 54 Q29 42 30 28" stroke="#795548" stroke-width="1.5" fill="none"/>
+            <path d="M30 54 Q36 44 42 34" stroke="#795548" stroke-width="1.5" fill="none"/>
+            <circle cx="17" cy="32" r="4.5" fill="#26a69a"/>
+            <circle cx="14" cy="26" r="3.5" fill="#2bbbad"/>
+            <circle cx="22" cy="25" r="3.5" fill="#26a69a"/>
+            <circle cx="30" cy="24" r="4.5" fill="#26a69a"/>
+            <circle cx="27" cy="18" r="3" fill="#2bbbad"/>
+            <circle cx="33" cy="17" r="3" fill="#26a69a"/>
+            <circle cx="43" cy="32" r="4.5" fill="#26a69a"/>
+            <circle cx="40" cy="26" r="3.5" fill="#2bbbad"/>
+            <circle cx="46" cy="25" r="3" fill="#26a69a"/>
+          </svg>
+          <div class="pname">Avenca</div>
+        </div>
+      </div>
+    </div>
+    <button class="btn btn-primary" onclick="criarEquipe()">Criar Equipe e Montar →</button>
+  </div>
+</main>
+</div>
+
+<!-- MONTAGEM -->
+<div id="screen-montagem" class="screen">
+<main>
+  <div class="card">
+    <div class="step-ind" id="step-ind"></div>
+    <div class="progress-wrap"><div class="progress-fill" id="prog-fill" style="width:0%"></div></div>
+    <div class="step-title" id="step-title"></div>
+    <div class="step-desc" id="step-desc"></div>
+    <div class="svg-wrap" id="mont-svg"></div>
+    <button class="btn btn-primary" id="btn-passo" onclick="proximoPasso()"></button>
+  </div>
+</main>
+</div>
+
+<!-- EQUIPE -->
+<div id="screen-equipe" class="screen">
+<main>
+  <div class="page-title" id="eq-nome"></div>
+  <div style="font-size:.85rem;color:#666;margin-bottom:10px" id="eq-int"></div>
+  <div class="tabs">
+    <button class="tab-btn active" id="tab-ter" onclick="switchTab('terrario')">🌿 Terrário</button>
+    <button class="tab-btn" id="tab-dia" onclick="switchTab('diario')">📓 Diário</button>
+  </div>
+
+  <!-- Pane Terrário -->
+  <div id="pane-ter">
+    <div id="err-eq" class="alert-error" style="display:none"></div>
+    <div class="svg-wrap" id="eq-svg"></div>
+    <div class="growth-label" id="growth-lbl"></div>
+    <div id="water-div"></div>
+    <button class="btn btn-primary" id="btn-regar" onclick="regar()" style="margin-top:8px">💧 Regar hoje</button>
+  </div>
+
+  <!-- Pane Diário -->
+  <div id="pane-dia" style="display:none">
+    <div class="card">
+      <h3 style="margin-bottom:12px">Nova Observação 📝</h3>
+      <div id="err-dia" class="alert-error" style="display:none"></div>
+      <div class="form-group">
+        <label for="inp-obs">O que você observou?</label>
+        <textarea id="inp-obs" placeholder="Descreva o que viu no terrário hoje…"></textarea>
+      </div>
+      <div class="form-group">
+        <label>A planta mudou?</label>
+        <div class="radio-group">
+          <label><input type="radio" name="mudou" value="sim"> Sim</label>
+          <label><input type="radio" name="mudou" value="nao" checked> Não</label>
+        </div>
+      </div>
+      <div class="form-group">
+        <label>Tem gotinhas no vidro?</label>
+        <div class="radio-group">
+          <label><input type="radio" name="gotinhas" value="sim"> Sim</label>
+          <label><input type="radio" name="gotinhas" value="nao" checked> Não</label>
+        </div>
+      </div>
+      <button class="btn btn-primary" onclick="salvarDiario()">Salvar no Diário</button>
+    </div>
+    <div id="lista-dia"></div>
+  </div>
+</main>
+</div>
+
+<script>
+// ─────────────────────────────────────────────
+// FIREBASE CONFIG — cole suas credenciais aqui
+// ─────────────────────────────────────────────
+const FIREBASE_CONFIG = {
+  apiKey:            "COLE_AQUI_API_KEY",
+  authDomain:        "COLE_AQUI_AUTH_DOMAIN",
+  projectId:         "COLE_AQUI_PROJECT_ID",
+  storageBucket:     "COLE_AQUI_STORAGE_BUCKET",
+  messagingSenderId: "COLE_AQUI_MESSAGING_SENDER_ID",
+  appId:             "COLE_AQUI_APP_ID"
+};
+
+// ─────────────────────────────────────────────
+// INIT FIREBASE / FALLBACK
+// ─────────────────────────────────────────────
+let db = null;
+let useFallback = Object.values(FIREBASE_CONFIG).some(v => v.startsWith("COLE_AQUI_"));
+
+if (!useFallback) {
+  try {
+    firebase.initializeApp(FIREBASE_CONFIG);
+    db = firebase.firestore();
+  } catch(e) {
+    console.warn("Firebase error:", e);
+    useFallback = true;
+  }
+}
+if (useFallback) {
+  document.getElementById("banner-fallback").style.display = "block";
+}
+
+// ─────────────────────────────────────────────
+// IN-MEMORY STORE
+// ─────────────────────────────────────────────
+let memStore = [];
+
+function sanitize(s) { return s.replace(/[\/\.#$\[\]]/g, '_'); }
+function docId(turma, nome) { return sanitize(turma) + '__' + sanitize(nome); }
+
+// ─────────────────────────────────────────────
+// DB HELPERS
+// ─────────────────────────────────────────────
+async function dbList(turma) {
+  if (useFallback) return memStore.filter(e => e.turma === turma);
+  const snap = await db.collection('equipes').where('turma','==',turma).get();
+  return snap.docs.map(d => ({id: d.id, ...d.data()}));
+}
+
+async function dbGet(turma, nome) {
+  if (useFallback) return memStore.find(e => e.turma===turma && e.nome===nome) || null;
+  const snap = await db.collection('equipes').doc(docId(turma,nome)).get();
+  return snap.exists ? {id: snap.id, ...snap.data()} : null;
+}
+
+async function dbCreate(data) {
+  if (useFallback) { memStore.push({...data}); return; }
+  await db.collection('equipes').doc(docId(data.turma, data.nome)).set(data);
+}
+
+async function dbUpdate(turma, nome, updates) {
+  if (useFallback) {
+    const idx = memStore.findIndex(e => e.turma===turma && e.nome===nome);
+    if (idx !== -1) Object.assign(memStore[idx], updates);
+    return;
+  }
+  await db.collection('equipes').doc(docId(turma,nome)).update(updates);
+}
+
+// ─────────────────────────────────────────────
+// STATE
+// ─────────────────────────────────────────────
+const st = {
+  turma: null,
+  equipe: null,
+  plantaSel: null,
+  tab: 'terrario',
+  back: []
+};
+
+// ─────────────────────────────────────────────
+// NAV
+// ─────────────────────────────────────────────
+function showScreen(id, title, showBack) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+  document.getElementById('header-title').textContent = title;
+  document.getElementById('btn-back').style.display = showBack ? '' : 'none';
+}
+
+function goBack() {
+  const fn = st.back.pop();
+  if (fn) fn(); else renderHome();
+}
+
+function showErr(id, msg) {
+  const el = document.getElementById(id);
+  el.textContent = '❌ ' + msg;
+  el.style.display = 'block';
+}
+function hideErr(id) { document.getElementById(id).style.display = 'none'; }
+
+// ─────────────────────────────────────────────
+// HOME
+// ─────────────────────────────────────────────
+function renderHome() {
+  showScreen('screen-home', '🌿 Terrário Virtual', false);
+  st.back = [];
+  document.getElementById('inp-turma').value = '';
+  const saved = JSON.parse(localStorage.getItem('tRec') || '[]');
+  const wrap = document.getElementById('turmas-recentes');
+  if (saved.length) {
+    wrap.style.display = 'block';
+    document.getElementById('lista-turmas-rec').innerHTML = saved.map(t =>
+      `<button class="btn btn-outline btn-sm" style="margin:3px" data-t="${esc(t)}" onclick="entrarTurmaNome(this.dataset.t)">${esc(t)}</button>`
+    ).join('');
+  } else wrap.style.display = 'none';
+}
+
+function entrarTurma() {
+  const v = document.getElementById('inp-turma').value.trim();
+  if (!v) { document.getElementById('inp-turma').focus(); return; }
+  entrarTurmaNome(v);
+}
+
+function entrarTurmaNome(turma) {
+  st.turma = turma;
+  let saved = JSON.parse(localStorage.getItem('tRec') || '[]');
+  saved = [turma, ...saved.filter(t => t !== turma)].slice(0, 6);
+  localStorage.setItem('tRec', JSON.stringify(saved));
+  st.back = [];
+  renderTurma();
+}
+
+// ─────────────────────────────────────────────
+// TURMA
+// ─────────────────────────────────────────────
+async function renderTurma() {
+  showScreen('screen-turma', '🌿 Terrário Virtual', true);
+  st.back = [renderHome];
+  document.getElementById('turma-title').textContent = st.turma;
+  document.getElementById('turma-badge').textContent = 'Turma: ' + st.turma;
+  hideErr('err-turma');
+  document.getElementById('lista-equipes').innerHTML = '<div class="empty-state">Carregando…</div>';
+  try {
+    const equipes = await dbList(st.turma);
+    renderListaEquipes(equipes);
+  } catch(e) {
+    showErr('err-turma', 'Erro ao carregar equipes: ' + e.message);
+    document.getElementById('lista-equipes').innerHTML = '';
+  }
+}
+
+function renderListaEquipes(equipes) {
+  const el = document.getElementById('lista-equipes');
+  if (!equipes.length) {
+    el.innerHTML = '<div class="empty-state">Nenhuma equipe ainda.<br>Crie a primeira! 🌱</div>';
+    return;
+  }
+  el.innerHTML = equipes.map(e => {
+    const dias = uniqueDays(e.regas || []);
+    const st2 = stage(dias);
+    const etapa = e.etapaMontagem || 0;
+    const meta = etapa < 5
+      ? `🔨 Montagem: ${etapa}/5`
+      : `🌿 ${nomePlanta(e.planta)} · ${dias} dia(s) regado(s) · Estágio ${st2}`;
+    return `<div class="equipe-card" data-nome="${esc(e.nome)}" onclick="abrirEquipe(this.dataset.nome)">
+      <h3>${esc(e.nome)}</h3>
+      <div class="meta">${e.integrantes ? '👥 '+esc(e.integrantes)+' · ' : ''}${meta}</div>
+    </div>`;
+  }).join('');
+}
+
+async function abrirEquipe(nome) {
+  st.back.push(renderTurma);
+  try {
+    const equipe = await dbGet(st.turma, nome);
+    if (!equipe) { showErr('err-turma', 'Equipe não encontrada.'); st.back.pop(); return; }
+    st.equipe = equipe;
+    if (equipe.etapaMontagem < 5) renderMontagem();
+    else { st.tab = 'terrario'; renderEquipe(); }
+  } catch(e) {
+    showErr('err-turma', e.message); st.back.pop();
+  }
+}
+
+// ─────────────────────────────────────────────
+// CRIAR EQUIPE
+// ─────────────────────────────────────────────
+function irCriarEquipe() {
+  st.plantaSel = null;
+  document.querySelectorAll('.plant-opt').forEach(o => o.classList.remove('selected'));
+  document.getElementById('inp-nome').value = '';
+  document.getElementById('inp-int').value = '';
+  document.getElementById('inp-frase').value = '';
+  hideErr('err-criar');
+  st.back.push(renderTurma);
+  showScreen('screen-criar', 'Nova Equipe', true);
+}
+
+function selectPlanta(id) {
+  st.plantaSel = id;
+  document.querySelectorAll('.plant-opt').forEach(o => o.classList.remove('selected'));
+  document.getElementById('opt-' + id).classList.add('selected');
+}
+
+async function criarEquipe() {
+  const nome = document.getElementById('inp-nome').value.trim();
+  const integrantes = document.getElementById('inp-int').value.trim();
+  const frase = document.getElementById('inp-frase').value.trim();
+  hideErr('err-criar');
+  if (!nome) { showErr('err-criar', 'Por favor, informe o nome da equipe.'); return; }
+  if (!st.plantaSel) { showErr('err-criar', 'Por favor, escolha uma planta.'); return; }
+  const data = {
+    turma: st.turma, nome, integrantes, frase,
+    planta: st.plantaSel,
+    dataPlantio: today(),
+    etapaMontagem: 0,
+    regas: [], diario: []
+  };
+  try {
+    await dbCreate(data);
+    st.equipe = data;
+    st.back = [renderTurma];
+    renderMontagem();
+  } catch(e) { showErr('err-criar', e.message); }
+}
+
+// ─────────────────────────────────────────────
+// MONTAGEM
+// ─────────────────────────────────────────────
+const STEPS = [
+  { title:'1. Pedrinhas no fundo 🪨',
+    desc:'Coloque uma camada de pedrinhas no fundo do terrário. Elas ajudam a drenar a água para a planta não afundar!',
+    btn:'Coloquei as pedrinhas!' },
+  { title:'2. Areia e carvão 🌑',
+    desc:'Adicione areia misturada com carvão. Essa camada filtra a água e evita cheirinhos ruins.',
+    btn:'Adicionei areia e carvão!' },
+  { title:'3. Terra úmida 🌍',
+    desc:'Coloque terra úmida — ela é o alimento da sua planta! Deixe uma camada boa e fofa.',
+    btn:'Coloquei a terra!' },
+  { title:'4. Hora de plantar! 🌱',
+    desc:'Faça um buraquinho no centro da terra e plante a mudinha com carinho.',
+    btn:'Plantei com cuidado!' },
+  { title:'5. Regar e fechar 💧',
+    desc:'Dê uma regadinha suave e feche o terrário. Ele vai criar seu próprio ciclo de água — como magia!',
+    btn:'Reguei e fechei! Concluído ✓' }
+];
+
+function renderMontagem() {
+  showScreen('screen-montagem', 'Montagem do Terrário', true);
+  renderStep();
+}
+
+function renderStep() {
+  const step = st.equipe.etapaMontagem || 0;
+  if (step >= 5) { st.tab='terrario'; renderEquipe(); return; }
+  const s = STEPS[step];
+  document.getElementById('step-ind').textContent = `Passo ${step+1} de 5`;
+  document.getElementById('prog-fill').style.width = (step/5*100)+'%';
+  document.getElementById('step-title').textContent = s.title;
+  document.getElementById('step-desc').textContent = s.desc;
+  document.getElementById('btn-passo').textContent = s.btn;
+  document.getElementById('mont-svg').innerHTML = svgTerrario({
+    planta: st.equipe.planta,
+    etapaMontagem: step,
+    showHouse: false,
+    stage: 0, murcha: false, gotinhas: false, frase: ''
+  });
+}
+
+async function proximoPasso() {
+  const newStep = (st.equipe.etapaMontagem || 0) + 1;
+  try {
+    await dbUpdate(st.turma, st.equipe.nome, {etapaMontagem: newStep});
+    st.equipe.etapaMontagem = newStep;
+  } catch(e) { console.warn('Erro ao salvar passo:', e); }
+  if (newStep >= 5) { st.tab='terrario'; renderEquipe(); }
+  else renderStep();
+}
+
+// ─────────────────────────────────────────────
+// EQUIPE
+// ─────────────────────────────────────────────
+function renderEquipe() {
+  showScreen('screen-equipe', st.equipe.nome, true);
+  document.getElementById('eq-nome').textContent = st.equipe.nome;
+  document.getElementById('eq-int').textContent = st.equipe.integrantes || '';
+  switchTab(st.tab);
+}
+
+function switchTab(tab) {
+  st.tab = tab;
+  document.getElementById('pane-ter').style.display = tab==='terrario' ? '' : 'none';
+  document.getElementById('pane-dia').style.display = tab==='diario' ? '' : 'none';
+  document.getElementById('tab-ter').classList.toggle('active', tab==='terrario');
+  document.getElementById('tab-dia').classList.toggle('active', tab==='diario');
+  if (tab==='terrario') renderPaneTer();
+  else renderPaneDia();
+}
+
+function renderPaneTer() {
+  const e = st.equipe;
+  const regas = e.regas || [];
+  const dias = uniqueDays(regas);
+  const stg = stage(dias);
+  const ultimo = ultimaRega(regas);
+  const dSem = ultimo >= 0 ? daysSince(ultimo) : (e.etapaMontagem>=5 ? 999 : -1);
+  const murcha = dSem >= 4;
+  const gotinhas = dSem >= 1 && dSem <= 2;
+  const jaHoje = regas.some(r => r.startsWith(today()));
+
+  document.getElementById('eq-svg').innerHTML = svgTerrario({
+    planta: e.planta, etapaMontagem: e.etapaMontagem,
+    showHouse: true, stage: stg, murcha, gotinhas, frase: e.frase || ''
+  });
+
+  const labels = ['Semente','Brotinho','Mudinha','Planta Jovem','Planta Grande','Planta Adulta'];
+  document.getElementById('growth-lbl').textContent =
+    `Estágio ${stg}: ${labels[stg]} — ${dias} dia(s) único(s) regado(s)`;
+
+  const wDiv = document.getElementById('water-div');
+  if (e.etapaMontagem < 5) {
+    wDiv.innerHTML = '<div class="water-status wwarn">⚠️ Complete a montagem para começar a regar!</div>';
+  } else if (dSem < 0) {
+    wDiv.innerHTML = '<div class="water-status wwarn">🌱 Ainda não regou — regue agora para começar!</div>';
+  } else if (dSem === 0) {
+    wDiv.innerHTML = '<div class="water-status wok">💧 Regado hoje! Ótimo trabalho!</div>';
+  } else if (dSem <= 2) {
+    wDiv.innerHTML = `<div class="water-status wok">💧 ${dSem} dia(s) sem regar — tudo bem!</div>`;
+  } else if (dSem === 3) {
+    wDiv.innerHTML = `<div class="water-status wwarn">⚠️ ${dSem} dias sem regar — regue em breve!</div>`;
+  } else {
+    wDiv.innerHTML = `<div class="water-status wdanger">🥀 ${dSem} dias sem regar — planta murchando!</div>`;
+  }
+
+  const btn = document.getElementById('btn-regar');
+  btn.disabled = jaHoje || e.etapaMontagem < 5;
+  btn.textContent = e.etapaMontagem < 5 ? '⚠️ Conclua a montagem primeiro'
+    : jaHoje ? '✓ Já regado hoje!' : '💧 Regar hoje';
+  hideErr('err-eq');
+}
+
+async function regar() {
+  const ts = new Date().toISOString();
+  const novas = [...(st.equipe.regas||[]), ts];
+  try {
+    await dbUpdate(st.turma, st.equipe.nome, {regas: novas});
+    st.equipe.regas = novas;
+    renderPaneTer();
+  } catch(e) { showErr('err-eq', 'Erro ao regar: ' + e.message); }
+}
+
+function renderPaneDia() {
+  hideErr('err-dia');
+  document.getElementById('inp-obs').value = '';
+  const mn = document.querySelector('input[name="mudou"][value="nao"]');
+  const gn = document.querySelector('input[name="gotinhas"][value="nao"]');
+  if (mn) mn.checked = true;
+  if (gn) gn.checked = true;
+
+  const lista = document.getElementById('lista-dia');
+  const diario = (st.equipe.diario||[]).slice().reverse();
+  if (!diario.length) {
+    lista.innerHTML = '<div class="empty-state">Nenhuma observação ainda.<br>Faça a primeira! 📓</div>';
+    return;
+  }
+  lista.innerHTML = diario.map(d => `
+    <div class="diario-entry">
+      <div class="ddate">${fmtDate(d.data)}</div>
+      <div class="dobs">${esc(d.observacao||'(sem observação)')}</div>
+      <div class="badges">
+        ${d.mudou ? '<span class="badge badge-mudou">🌿 Planta mudou</span>' : ''}
+        ${d.gotinhas ? '<span class="badge badge-gotinhas">💧 Gotinhas</span>' : ''}
+      </div>
+    </div>`).join('');
+}
+
+async function salvarDiario() {
+  const obs = document.getElementById('inp-obs').value.trim();
+  hideErr('err-dia');
+  if (!obs) { showErr('err-dia','Escreva uma observação antes de salvar.'); return; }
+  const mudou = document.querySelector('input[name="mudou"]:checked').value === 'sim';
+  const gotinhas = document.querySelector('input[name="gotinhas"]:checked').value === 'sim';
+  const entry = {data: new Date().toISOString(), observacao: obs, mudou, gotinhas};
+  const novo = [...(st.equipe.diario||[]), entry];
+  try {
+    await dbUpdate(st.turma, st.equipe.nome, {diario: novo});
+    st.equipe.diario = novo;
+    renderPaneDia();
+  } catch(e) { showErr('err-dia','Erro ao salvar: ' + e.message); }
+}
+
+// ─────────────────────────────────────────────
+// SVG TERRÁRIO
+// ─────────────────────────────────────────────
+function svgTerrario({planta, etapaMontagem, showHouse, stage, murcha, gotinhas, frase}) {
+  const W = 220, H = 340;
+  let s = `<svg viewBox="0 0 ${W} ${H}" xmlns="http://www.w3.org/2000/svg">`;
+
+  // ── Dimensões da garrafa
+  const bw = showHouse ? 80 : 120;
+  const bx = (W - bw) / 2;
+  const by = showHouse ? 48 : 30;
+  const bh = showHouse ? 248 : 270;
+  const nw = bw * 0.55, nx = bx + (bw - nw) / 2;
+  const neckH = 28;
+  const bodyY = by + neckH, bodyH = bh - neckH;
+
+  // Camadas (de baixo p/ cima)
+  const bottomY = by + bh;
+  const pH = 22, sH = 18, tH = 46; // pedrinhas, sand, terra
+
+  const showP = etapaMontagem >= 1;
+  const showS = etapaMontagem >= 2;
+  const showT = etapaMontagem >= 3;
+  const showPl = etapaMontagem >= 4;
+
+  // ── CASA (atrás da garrafa)
+  if (showHouse) {
+    const hx=4, hy=12, hw=212, hh=316;
+    // Paredes
+    s += `<rect x="${hx}" y="${hy}" width="${hw}" height="${hh}" rx="5" fill="#d4a96a" stroke="#a07040" stroke-width="2"/>`;
+    // Telhado plano (topo reto)
+    s += `<rect x="${hx-6}" y="${hy-14}" width="${hw+12}" height="20" rx="4" fill="#7a3b1e" stroke="#5a2c15" stroke-width="1.5"/>`;
+    // Janela arco esquerda
+    s += archWin(hx+7, hy+22, 34, 52);
+    // Janela arco direita
+    s += archWin(hx+hw-41, hy+22, 34, 52);
+    // Plaquinha
+    const px=hx+28, py2=hy+hh-54, pw=hw-56, ph2=38;
+    s += `<rect x="${px}" y="${py2}" width="${pw}" height="${ph2}" rx="7" fill="#f5deb3" stroke="#a07040" stroke-width="1.5"/>`;
+    const txt = (frase||'').substring(0,36);
+    if (txt.length <= 20) {
+      s += `<text x="${px+pw/2}" y="${py2+ph2/2+5}" text-anchor="middle" font-family="Calibri,sans-serif" font-size="10" fill="#5a3800" font-style="italic">${escSvg(txt)}</text>`;
+    } else {
+      const mid = txt.lastIndexOf(' ', 20) || 18;
+      s += `<text x="${px+pw/2}" y="${py2+13}" text-anchor="middle" font-family="Calibri,sans-serif" font-size="9.5" fill="#5a3800" font-style="italic">${escSvg(txt.slice(0,mid))}</text>`;
+      s += `<text x="${px+pw/2}" y="${py2+27}" text-anchor="middle" font-family="Calibri,sans-serif" font-size="9.5" fill="#5a3800" font-style="italic">${escSvg(txt.slice(mid+1))}</text>`;
+    }
+  }
+
+  // ── GARRAFA: corpo + gargalo
+  const glass = 'rgba(180,220,250,0.30)';
+  const glassStroke = '#6aaac8';
+  s += `<rect x="${bx}" y="${bodyY}" width="${bw}" height="${bodyH}" rx="12" fill="${glass}" stroke="${glassStroke}" stroke-width="2"/>`;
+  s += `<rect x="${nx}" y="${by}" width="${nw}" height="${neckH+6}" rx="7" fill="${glass}" stroke="${glassStroke}" stroke-width="2"/>`;
+  // Tampa
+  s += `<rect x="${nx+4}" y="${by-10}" width="${nw-8}" height="13" rx="4" fill="#004b8d" stroke="#003070" stroke-width="1"/>`;
+
+  // ── CAMADAS
+  if (showP) {
+    const py = bottomY - pH;
+    s += `<rect x="${bx+3}" y="${py}" width="${bw-6}" height="${pH}" fill="#90a4ae" rx="3"/>`;
+    for (let i=0;i<7;i++) {
+      const px2 = bx+8+i*((bw-16)/7);
+      const r=2.5+Math.sin(i*1.9)*1.5;
+      s += `<ellipse cx="${px2}" cy="${py+11}" rx="${r}" ry="${r*.8}" fill="#78909c"/>`;
+    }
+  }
+  if (showS) {
+    const sy = bottomY - pH - sH;
+    s += `<rect x="${bx+3}" y="${sy}" width="${bw-6}" height="${sH}" fill="#c8a96e" rx="2"/>`;
+    for (let i=0;i<5;i++) {
+      const cx2=bx+10+i*((bw-20)/5);
+      s += `<ellipse cx="${cx2}" cy="${sy+9}" rx="4" ry="2.5" fill="#37474f" opacity=".65"/>`;
+    }
+  }
+  if (showT) {
+    const tY = bottomY - pH - sH - tH;
+    s += `<rect x="${bx+3}" y="${tY}" width="${bw-6}" height="${tH}" fill="#5d4037" rx="2"/>`;
+    s += `<rect x="${bx+3}" y="${tY}" width="${bw-6}" height="7" fill="#6d4c41" rx="2"/>`;
+  }
+
+  // ── PLANTA
+  if (showPl) {
+    const soilTop = bottomY - pH - sH - tH;
+    const cx = bx + bw/2;
+    s += renderPlanta(planta, cx, soilTop, stage, murcha);
+  }
+
+  // ── GOTINHAS de condensação
+  if (gotinhas) {
+    const drops = [[bx+12,bodyY+40],[bx+bw-14,bodyY+65],[bx+16,bodyY+100],[bx+bw-12,bodyY+120]];
+    for (const [dx,dy] of drops) {
+      s += `<ellipse cx="${dx}" cy="${dy}" rx="3" ry="5" fill="rgba(80,160,240,0.55)"/>`;
+    }
+  }
+
+  // ── Reflexo do vidro
+  s += `<line x1="${bx+8}" y1="${bodyY+14}" x2="${bx+8}" y2="${bodyY+bodyH-18}" stroke="rgba(255,255,255,.45)" stroke-width="3.5" stroke-linecap="round"/>`;
+  // Contorno por cima das camadas
+  s += `<rect x="${bx}" y="${bodyY}" width="${bw}" height="${bodyH}" rx="12" fill="none" stroke="${glassStroke}" stroke-width="2"/>`;
+
+  s += `</svg>`;
+  return s;
+}
+
+function archWin(x, y, w, h) {
+  const r = w/2;
+  return `<path d="M${x},${y+h} L${x},${y+r} A${r},${r} 0 0 1 ${x+w},${y+r} L${x+w},${y+h} Z" fill="#b3d9f2" stroke="#7aafc8" stroke-width="1.5" opacity=".85"/>
+  <line x1="${x+w/2}" y1="${y+r}" x2="${x+w/2}" y2="${y+h}" stroke="#7aafc8" stroke-width="1" opacity=".5"/>
+  <line x1="${x}" y1="${y+r+(h-r)/2}" x2="${x+w}" y2="${y+r+(h-r)/2}" stroke="#7aafc8" stroke-width="1" opacity=".5"/>`;
+}
+
+// ─────────────────────────────────────────────
+// PLANTAS
+// ─────────────────────────────────────────────
+function renderPlanta(planta, cx, soilY, stg, murcha) {
+  if (stg === 0) return `<ellipse cx="${cx}" cy="${soilY}" rx="5" ry="3" fill="#6d4c41"/>`;
+  const h = [0,18,36,56,76,96][Math.min(stg,5)];
+  const gr = murcha ? '#7a9e3e' : '#4caf50';
+  const gr2 = murcha ? '#90a84e' : '#66bb6a';
+  const teal = murcha ? '#4a8080' : '#26a69a';
+  const teal2 = murcha ? '#3d7070' : '#2bbbad';
+  const mAngle = murcha ? 18 : 0; // tilt when wilting
+
+  if (planta === 'samambaia') return plantSamambaia(cx, soilY, h, gr, gr2, mAngle);
+  if (planta === 'suculenta') return plantSuculenta(cx, soilY, h, gr, gr2);
+  if (planta === 'feijao')    return plantFeijao(cx, soilY, h, gr, gr2, mAngle);
+  if (planta === 'avenca')    return plantAvenca(cx, soilY, h, teal, teal2, mAngle);
+  return '';
+}
+
+function plantSamambaia(cx, soilY, h, g1, g2, mA) {
+  let r = '<g>';
+  const n = Math.min(Math.floor(h/16)+2, 7);
+  const spread = h * 0.65;
+  for (let i=0;i<n;i++) {
+    const a = -Math.PI/2 + (i - n/2 + .5) * (Math.PI*0.85/n) + mA*Math.PI/180*(i%2?1:-1)*.3;
+    const ex = cx + Math.cos(a)*spread;
+    const ey = soilY - Math.abs(Math.sin(a))*h - h*.15;
+    const col = i%2===0?g1:g2;
+    r += `<path d="M${cx},${soilY} Q${(cx+ex)/2},${soilY-h*.35} ${ex},${ey}" stroke="${col}" stroke-width="2.5" fill="none" stroke-linecap="round"/>`;
+    for (let j=1;j<=4;j++) {
+      const t=j/5, lx=cx+(ex-cx)*t, ly=soilY+(ey-soilY)*t, lw=5*(1-t*.4);
+      r += `<ellipse cx="${lx}" cy="${ly}" rx="${lw}" ry="${lw*.5}" fill="${col}" opacity=".8" transform="rotate(${(a*180/Math.PI)+90} ${lx} ${ly})"/>`;
+    }
+  }
+  return r+'</g>';
+}
+
+function plantSuculenta(cx, soilY, h, g1, g2) {
+  const sc = Math.max(.3, h/96);
+  let r = '<g>';
+  const n = Math.min(Math.floor(h/14)+3, 9);
+  const br = 8*sc;
+  r += `<ellipse cx="${cx}" cy="${soilY-br}" rx="${br}" ry="${br*.85}" fill="${g1}"/>`;
+  for (let i=0;i<n;i++) {
+    const a = (i/n)*Math.PI*2;
+    const d = br+11*sc;
+    const lx=cx+Math.cos(a)*d, ly=soilY-br+Math.sin(a)*d*.55;
+    r += `<ellipse cx="${lx}" cy="${ly}" rx="${8*sc}" ry="${12*sc}" fill="${i%2===0?g1:g2}" transform="rotate(${a*180/Math.PI+90} ${lx} ${ly})"/>`;
+  }
+  if (h>40) {
+    r += `<ellipse cx="${cx-20*sc}" cy="${soilY-5*sc}" rx="${6*sc}" ry="${5*sc}" fill="${g2}"/>`;
+    r += `<ellipse cx="${cx+20*sc}" cy="${soilY-5*sc}" rx="${6*sc}" ry="${5*sc}" fill="${g1}"/>`;
+  }
+  return r+'</g>';
+}
+
+function plantFeijao(cx, soilY, h, g1, g2, mA) {
+  let r = `<g><line x1="${cx}" y1="${soilY}" x2="${cx}" y2="${soilY-h}" stroke="#795548" stroke-width="2.5" stroke-linecap="round"/>`;
+  const n = Math.min(Math.floor(h/18)+1, 5);
+  for (let i=0;i<n;i++) {
+    const t=(i+1)/(n+1), ly=soilY-h*t;
+    const side=i%2===0?-1:1;
+    const lw=11*(0.5+t*.55), lh=7*(0.5+t*.55);
+    const rot=side*32+mA*side*.5;
+    r += `<ellipse cx="${cx+side*lw*.65}" cy="${ly}" rx="${lw}" ry="${lh}" fill="${i%2===0?g1:g2}" transform="rotate(${rot} ${cx} ${ly})"/>`;
+  }
+  if (h>28) {
+    r += `<ellipse cx="${cx-9}" cy="${soilY-h-4}" rx="9" ry="6" fill="${g1}" transform="rotate(-22 ${cx} ${soilY-h})"/>`;
+    r += `<ellipse cx="${cx+9}" cy="${soilY-h-4}" rx="9" ry="6" fill="${g2}" transform="rotate(22 ${cx} ${soilY-h})"/>`;
+  }
+  return r+'</g>';
+}
+
+function plantAvenca(cx, soilY, h, t1, t2, mA) {
+  let r = '<g>';
+  const n = Math.min(Math.floor(h/14)+2, 6);
+  for (let i=0;i<n;i++) {
+    const a = -Math.PI/2 + (i-n/2+.5)*(Math.PI*.75/n) + mA*Math.PI/180*(i%2?1:-1)*.4;
+    const fh = h*(.6+(i===Math.floor(n/2)?.4:.1));
+    const ex=cx+Math.cos(a)*fh*.5, ey=soilY-fh;
+    r += `<path d="M${cx},${soilY} Q${(cx+ex)/2},${soilY-fh*.45} ${ex},${ey}" stroke="#795548" stroke-width="1.5" fill="none"/>`;
+    for (let j=1;j<=4;j++) {
+      const tt=j/5, lx=cx+(ex-cx)*tt, ly=soilY+(ey-soilY)*tt, lr=3.5+tt*3;
+      r += `<ellipse cx="${lx}" cy="${ly}" rx="${lr}" ry="${lr*.6}" fill="${j%2===0?t1:t2}" opacity=".9"/>`;
+    }
+  }
+  return r+'</g>';
+}
+
+// ─────────────────────────────────────────────
+// UTILS
+// ─────────────────────────────────────────────
+function uniqueDays(regas) {
+  return new Set(regas.map(r => r.split('T')[0])).size;
+}
+
+function stage(dias) {
+  if (dias===0) return 0;
+  if (dias===1) return 1;
+  if (dias<=3) return 2;
+  if (dias<=6) return 3;
+  if (dias<=10) return 4;
+  return 5;
+}
+
+function ultimaRega(regas) {
+  if (!regas||!regas.length) return null;
+  const dates = regas.map(r=>r.split('T')[0]).sort();
+  return dates[dates.length-1];
+}
+
+function today() { return new Date().toISOString().split('T')[0]; }
+
+function daysSince(dateStr) {
+  const d = new Date(dateStr), n = new Date(today());
+  return Math.floor((n-d)/86400000);
+}
+
+function fmtDate(iso) {
+  return new Date(iso).toLocaleDateString('pt-BR',{day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit'});
+}
+
+function esc(s) {
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+function escSvg(s) { return esc(s).substring(0,42); }
+
+function nomePlanta(id) {
+  return {samambaia:'Samambaia',suculenta:'Suculenta',feijao:'Feijão',avenca:'Avenca'}[id]||id;
+}
+
+// ─────────────────────────────────────────────
+// START
+// ─────────────────────────────────────────────
+renderHome();
+</script>
+</body>
+</html>
