@@ -96,26 +96,6 @@ h3{color:#004b8d}
   <h1 id="header-title">🌿 Terrário Virtual</h1>
 </header>
 
-<!-- SENHA -->
-<div id="screen-senha" class="screen active">
-<main>
-  <div style="text-align:center;padding:32px 0 18px">
-    <div style="font-size:3rem">🌿</div>
-    <h2 style="font-size:1.5rem">Terrário Virtual</h2>
-    <p style="color:#666;margin-top:6px;font-size:.95rem">Projeto SESI-SP — Terrário em Equipe</p>
-  </div>
-  <div class="card">
-    <div class="form-group">
-      <label for="inp-senha">Senha de acesso</label>
-      <input type="password" id="inp-senha" placeholder="Digite a senha…"
-             onkeydown="if(event.key==='Enter')verificarSenha()">
-    </div>
-    <div id="err-senha" class="alert-error" style="display:none"></div>
-    <button class="btn btn-primary" onclick="verificarSenha()">Entrar</button>
-  </div>
-</main>
-</div>
-
 <!-- HOME -->
 <div id="screen-home" class="screen">
 <main>
@@ -395,21 +375,44 @@ function docId(turma, nome) { return sanitize(turma) + '__' + sanitize(nome); }
 // ─────────────────────────────────────────────
 // DB HELPERS
 // ─────────────────────────────────────────────
+function erroPermissao(e) {
+  return e && (e.code === 'permission-denied' || (e.message||'').includes('permission'));
+}
+
+function msgPermissao() {
+  return 'Permissão negada pelo Firestore. Atualize as regras do banco em: console.firebase.google.com → Firestore → Regras → cole: allow read, write: if true; → Publicar';
+}
+
 async function dbList(turma) {
   if (useFallback) return memStore.filter(e => e.turma === turma);
-  const snap = await db.collection('equipes').where('turma','==',turma).get();
-  return snap.docs.map(d => ({id: d.id, ...d.data()}));
+  try {
+    const snap = await db.collection('equipes').where('turma','==',turma).get();
+    return snap.docs.map(d => ({id: d.id, ...d.data()}));
+  } catch(e) {
+    if (erroPermissao(e)) throw new Error(msgPermissao());
+    throw e;
+  }
 }
 
 async function dbGet(turma, nome) {
   if (useFallback) return memStore.find(e => e.turma===turma && e.nome===nome) || null;
-  const snap = await db.collection('equipes').doc(docId(turma,nome)).get();
-  return snap.exists ? {id: snap.id, ...snap.data()} : null;
+  try {
+    const snap = await db.collection('equipes').doc(docId(turma,nome)).get();
+    return snap.exists ? {id: snap.id, ...snap.data()} : null;
+  } catch(e) {
+    if (erroPermissao(e)) throw new Error(msgPermissao());
+    throw e;
+  }
 }
 
 async function dbCreate(data) {
   if (useFallback) { memStore.push({...data}); return; }
-  await db.collection('equipes').doc(docId(data.turma, data.nome)).set(data);
+  try {
+    await db.collection('equipes').doc(docId(data.turma, data.nome)).set(data);
+  } catch(e) {
+    if (erroPermissao(e)) throw new Error(msgPermissao());
+    throw e;
+  }
 }
 
 async function dbUpdate(turma, nome, updates) {
@@ -418,7 +421,12 @@ async function dbUpdate(turma, nome, updates) {
     if (idx !== -1) Object.assign(memStore[idx], updates);
     return;
   }
-  await db.collection('equipes').doc(docId(turma,nome)).update(updates);
+  try {
+    await db.collection('equipes').doc(docId(turma,nome)).update(updates);
+  } catch(e) {
+    if (erroPermissao(e)) throw new Error(msgPermissao());
+    throw e;
+  }
 }
 
 // ─────────────────────────────────────────────
@@ -1057,25 +1065,6 @@ function plantAvenca(cx, soilY, h, t1, t2, mA) {
   return r+'</g>';
 }
 
-// ─────────────────────────────────────────────
-// SENHA
-// ─────────────────────────────────────────────
-const SENHA = 'sesi2025';
-
-function verificarSenha() {
-  const v = document.getElementById('inp-senha').value;
-  if (v === SENHA) {
-    sessionStorage.setItem('auth', '1');
-    showScreen('screen-home', '🌿 Terrário Virtual', false);
-    st.back = [];
-    loadTurmasRecentes();
-    document.getElementById('inp-turma').value = '';
-  } else {
-    showErr('err-senha', 'Senha incorreta. Peça ao professor!');
-    document.getElementById('inp-senha').value = '';
-    document.getElementById('inp-senha').focus();
-  }
-}
 
 // ─────────────────────────────────────────────
 // UTILS — escala de tempo acelerada
@@ -1140,13 +1129,8 @@ function nomePlanta(id) {
 // ─────────────────────────────────────────────
 // START
 // ─────────────────────────────────────────────
-if (sessionStorage.getItem('auth') === '1') {
-  showScreen('screen-home', '🌿 Terrário Virtual', false);
-  loadTurmasRecentes();
-} else {
-  showScreen('screen-senha', '🌿 Terrário Virtual', false);
-  setTimeout(() => document.getElementById('inp-senha').focus(), 100);
-}
+showScreen('screen-home', '🌿 Terrário Virtual', false);
+loadTurmasRecentes();
 </script>
 </body>
 </html>
