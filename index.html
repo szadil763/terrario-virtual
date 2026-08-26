@@ -84,8 +84,28 @@ h3{color:#004b8d}
   <h1 id="header-title">🌿 Terrário Virtual</h1>
 </header>
 
+<!-- SENHA -->
+<div id="screen-senha" class="screen active">
+<main>
+  <div style="text-align:center;padding:32px 0 18px">
+    <div style="font-size:3rem">🌿</div>
+    <h2 style="font-size:1.5rem">Terrário Virtual</h2>
+    <p style="color:#666;margin-top:6px;font-size:.95rem">Projeto SESI-SP — Terrário em Equipe</p>
+  </div>
+  <div class="card">
+    <div class="form-group">
+      <label for="inp-senha">Senha de acesso</label>
+      <input type="password" id="inp-senha" placeholder="Digite a senha…"
+             onkeydown="if(event.key==='Enter')verificarSenha()">
+    </div>
+    <div id="err-senha" class="alert-error" style="display:none"></div>
+    <button class="btn btn-primary" onclick="verificarSenha()">Entrar</button>
+  </div>
+</main>
+</div>
+
 <!-- HOME -->
-<div id="screen-home" class="screen active">
+<div id="screen-home" class="screen">
 <main>
   <div style="text-align:center;padding:24px 0 14px">
     <div style="font-size:3rem">🌿</div>
@@ -362,10 +382,7 @@ function hideErr(id) { document.getElementById(id).style.display = 'none'; }
 // ─────────────────────────────────────────────
 // HOME
 // ─────────────────────────────────────────────
-function renderHome() {
-  showScreen('screen-home', '🌿 Terrário Virtual', false);
-  st.back = [];
-  document.getElementById('inp-turma').value = '';
+function loadTurmasRecentes() {
   const saved = JSON.parse(localStorage.getItem('tRec') || '[]');
   const wrap = document.getElementById('turmas-recentes');
   if (saved.length) {
@@ -374,6 +391,13 @@ function renderHome() {
       `<button class="btn btn-outline btn-sm" style="margin:3px" data-t="${esc(t)}" onclick="entrarTurmaNome(this.dataset.t)">${esc(t)}</button>`
     ).join('');
   } else wrap.style.display = 'none';
+}
+
+function renderHome() {
+  showScreen('screen-home', '🌿 Terrário Virtual', false);
+  st.back = [];
+  document.getElementById('inp-turma').value = '';
+  loadTurmasRecentes();
 }
 
 function entrarTurma() {
@@ -422,7 +446,7 @@ function renderListaEquipes(equipes) {
     const etapa = e.etapaMontagem || 0;
     const meta = etapa < 5
       ? `🔨 Montagem: ${etapa}/5`
-      : `🌿 ${nomePlanta(e.planta)} · ${dias} dia(s) regado(s) · Estágio ${st2}`;
+      : `🌿 ${nomePlanta(e.planta)} · ${dias} dia(s) simulado(s) · Estágio ${st2}`;
     return `<div class="equipe-card" data-nome="${esc(e.nome)}" onclick="abrirEquipe(this.dataset.nome)">
       <h3>${esc(e.nome)}</h3>
       <div class="meta">${e.integrantes ? '👥 '+esc(e.integrantes)+' · ' : ''}${meta}</div>
@@ -564,10 +588,10 @@ function renderPaneTer() {
   const dias = uniqueDays(regas);
   const stg = stage(dias);
   const ultimo = ultimaRega(regas);
-  const dSem = ultimo >= 0 ? daysSince(ultimo) : (e.etapaMontagem>=5 ? 999 : -1);
+  const dSem = ultimo ? daysSince(ultimo) : (e.etapaMontagem>=5 ? 999 : -1);
   const murcha = dSem >= 4;
   const gotinhas = dSem >= 1 && dSem <= 2;
-  const jaHoje = regas.some(r => r.startsWith(today()));
+  const jaBloco = jaNesteBloco(regas);
 
   document.getElementById('eq-svg').innerHTML = svgTerrario({
     planta: e.planta, etapaMontagem: e.etapaMontagem,
@@ -576,7 +600,7 @@ function renderPaneTer() {
 
   const labels = ['Semente','Brotinho','Mudinha','Planta Jovem','Planta Grande','Planta Adulta'];
   document.getElementById('growth-lbl').textContent =
-    `Estágio ${stg}: ${labels[stg]} — ${dias} dia(s) único(s) regado(s)`;
+    `Estágio ${stg}: ${labels[stg]} — ${dias} dia(s) simulado(s)`;
 
   const wDiv = document.getElementById('water-div');
   if (e.etapaMontagem < 5) {
@@ -584,19 +608,19 @@ function renderPaneTer() {
   } else if (dSem < 0) {
     wDiv.innerHTML = '<div class="water-status wwarn">🌱 Ainda não regou — regue agora para começar!</div>';
   } else if (dSem === 0) {
-    wDiv.innerHTML = '<div class="water-status wok">💧 Regado hoje! Ótimo trabalho!</div>';
+    wDiv.innerHTML = '<div class="water-status wok">💧 Regado! Próxima rega em 2 horas.</div>';
   } else if (dSem <= 2) {
-    wDiv.innerHTML = `<div class="water-status wok">💧 ${dSem} dia(s) sem regar — tudo bem!</div>`;
+    wDiv.innerHTML = `<div class="water-status wok">💧 ${dSem} dia(s) simulado(s) sem regar — tudo bem!</div>`;
   } else if (dSem === 3) {
-    wDiv.innerHTML = `<div class="water-status wwarn">⚠️ ${dSem} dias sem regar — regue em breve!</div>`;
+    wDiv.innerHTML = `<div class="water-status wwarn">⚠️ ${dSem} dias simulados sem regar — regue em breve!</div>`;
   } else {
-    wDiv.innerHTML = `<div class="water-status wdanger">🥀 ${dSem} dias sem regar — planta murchando!</div>`;
+    wDiv.innerHTML = `<div class="water-status wdanger">🥀 ${dSem} dias simulados sem regar — planta murchando!</div>`;
   }
 
   const btn = document.getElementById('btn-regar');
-  btn.disabled = jaHoje || e.etapaMontagem < 5;
+  btn.disabled = jaBloco || e.etapaMontagem < 5;
   btn.textContent = e.etapaMontagem < 5 ? '⚠️ Conclua a montagem primeiro'
-    : jaHoje ? '✓ Já regado hoje!' : '💧 Regar hoje';
+    : jaBloco ? '✓ Já regado neste período!' : '💧 Regar agora';
   hideErr('err-eq');
 }
 
@@ -852,33 +876,70 @@ function plantAvenca(cx, soilY, h, t1, t2, mA) {
 }
 
 // ─────────────────────────────────────────────
-// UTILS
+// SENHA
 // ─────────────────────────────────────────────
+const SENHA = 'sesi2025';
+
+function verificarSenha() {
+  const v = document.getElementById('inp-senha').value;
+  if (v === SENHA) {
+    sessionStorage.setItem('auth', '1');
+    showScreen('screen-home', '🌿 Terrário Virtual', false);
+    st.back = [];
+    loadTurmasRecentes();
+    document.getElementById('inp-turma').value = '';
+  } else {
+    showErr('err-senha', 'Senha incorreta. Peça ao professor!');
+    document.getElementById('inp-senha').value = '';
+    document.getElementById('inp-senha').focus();
+  }
+}
+
+// ─────────────────────────────────────────────
+// UTILS — escala de tempo acelerada
+// 1 bloco de 2 horas = 1 "dia simulado"
+// Das 7h às 16h = ~4 blocos por dia de aula
+// ─────────────────────────────────────────────
+
+// Retorna o índice do bloco de 2h desde a época Unix
+function blocoAtual(iso) {
+  return Math.floor(new Date(iso).getTime() / (2 * 60 * 60 * 1000));
+}
+
+// Conta quantos blocos de 2h únicos foram regados
 function uniqueDays(regas) {
-  return new Set(regas.map(r => r.split('T')[0])).size;
+  return new Set(regas.map(r => blocoAtual(r))).size;
 }
 
 function stage(dias) {
   if (dias===0) return 0;
   if (dias===1) return 1;
   if (dias<=3) return 2;
-  if (dias<=6) return 3;
-  if (dias<=10) return 4;
+  if (dias<=5) return 3;
+  if (dias<=8) return 4;
   return 5;
 }
 
+// Retorna o ISO timestamp mais recente
 function ultimaRega(regas) {
   if (!regas||!regas.length) return null;
-  const dates = regas.map(r=>r.split('T')[0]).sort();
-  return dates[dates.length-1];
+  return regas.reduce((a,b) => a > b ? a : b);
+}
+
+// Blocos de 2h desde a última rega
+function daysSince(isoDate) {
+  const last = blocoAtual(isoDate);
+  const now = blocoAtual(new Date().toISOString());
+  return now - last;
+}
+
+// "Já regou neste bloco de 2h?"
+function jaNesteBloco(regas) {
+  const now = blocoAtual(new Date().toISOString());
+  return regas.some(r => blocoAtual(r) === now);
 }
 
 function today() { return new Date().toISOString().split('T')[0]; }
-
-function daysSince(dateStr) {
-  const d = new Date(dateStr), n = new Date(today());
-  return Math.floor((n-d)/86400000);
-}
 
 function fmtDate(iso) {
   return new Date(iso).toLocaleDateString('pt-BR',{day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit'});
@@ -897,7 +958,13 @@ function nomePlanta(id) {
 // ─────────────────────────────────────────────
 // START
 // ─────────────────────────────────────────────
-renderHome();
+if (sessionStorage.getItem('auth') === '1') {
+  showScreen('screen-home', '🌿 Terrário Virtual', false);
+  loadTurmasRecentes();
+} else {
+  showScreen('screen-senha', '🌿 Terrário Virtual', false);
+  setTimeout(() => document.getElementById('inp-senha').focus(), 100);
+}
 </script>
 </body>
 </html>
