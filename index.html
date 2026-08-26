@@ -83,6 +83,7 @@ h3{color:#004b8d}
 .painel-card .pmeta{font-size:.72rem;color:#666}
 .painel-card .pstatus{font-size:.75rem;font-weight:bold;margin-top:4px}
 .painel-card svg{max-width:100px;width:100%}
+@keyframes slideUp{from{transform:translateX(-50%) translateY(30px);opacity:0}to{transform:translateX(-50%) translateY(0);opacity:1}}
 </style>
 </head>
 <body>
@@ -94,7 +95,14 @@ h3{color:#004b8d}
 <header>
   <button class="btn-back" id="btn-back" style="display:none" onclick="goBack()">← Voltar</button>
   <h1 id="header-title">🌿 Terrário Virtual</h1>
+  <button id="btn-alarme" class="btn-back" onclick="toggleAlarme()" title="Alarme de rega">🔔</button>
 </header>
+
+<div id="toast-alarme" style="display:none;position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:#004b8d;color:white;padding:16px 24px;border-radius:14px;font-weight:bold;z-index:300;text-align:center;box-shadow:0 4px 20px rgba(0,0,0,.3);max-width:88vw;animation:slideUp .3s ease">
+  💧 Hora de regar o terrário!<br>
+  <span style="font-size:.85rem;font-weight:normal;opacity:.9">Abra o app e regue sua planta agora</span>
+  <button onclick="fecharToast()" style="background:none;border:none;color:white;font-size:1.4rem;cursor:pointer;margin-left:14px;vertical-align:middle;line-height:1">✕</button>
+</div>
 
 <!-- HOME -->
 <div id="screen-home" class="screen">
@@ -1125,6 +1133,95 @@ function escSvg(s) { return esc(s).substring(0,42); }
 function nomePlanta(id) {
   return {samambaia:'Samambaia',suculenta:'Suculenta',feijao:'Feijão',avenca:'Avenca'}[id]||id;
 }
+
+// ─────────────────────────────────────────────
+// ALARME DE REGA
+// ─────────────────────────────────────────────
+let alarmeAtivo = true;
+let ultimoBlocoAlarmado = null;
+let toastTimer = null;
+
+// Inicializa AudioContext após primeiro clique do usuário (exigência dos browsers)
+let audioCtx = null;
+document.addEventListener('click', () => {
+  if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+  else if (audioCtx.state === 'suspended') audioCtx.resume();
+}, false);
+
+function tocarAlarme() {
+  if (!alarmeAtivo) return;
+  try {
+    if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    if (audioCtx.state === 'suspended') audioCtx.resume();
+    const t = audioCtx.currentTime;
+
+    function nota(f1, f2, start, dur, type, vol) {
+      const osc = audioCtx.createOscillator();
+      const g = audioCtx.createGain();
+      osc.connect(g); g.connect(audioCtx.destination);
+      osc.type = type || 'sine';
+      osc.frequency.setValueAtTime(f1, t + start);
+      if (f2) osc.frequency.exponentialRampToValueAtTime(f2, t + start + dur * 0.75);
+      g.gain.setValueAtTime(vol || 0.28, t + start);
+      g.gain.exponentialRampToValueAtTime(0.001, t + start + dur);
+      osc.start(t + start);
+      osc.stop(t + start + dur + 0.05);
+    }
+
+    // 💧 gota + 💧 gota + 🎵 campainha
+    nota(820, 380, 0,    0.30);
+    nota(960, 430, 0.40, 0.25);
+    nota(1047, null, 0.78, 1.00, 'triangle', 0.20);
+    nota(1319, null, 0.88, 0.80, 'triangle', 0.14);
+  } catch(e) { console.warn('Alarme audio:', e); }
+}
+
+function mostrarToast() {
+  const el = document.getElementById('toast-alarme');
+  el.style.display = 'block';
+  el.style.animation = 'none';
+  void el.offsetWidth; // reflow para reiniciar animação
+  el.style.animation = 'slideUp .3s ease';
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(fecharToast, 10000);
+}
+
+function fecharToast() {
+  document.getElementById('toast-alarme').style.display = 'none';
+  clearTimeout(toastTimer);
+}
+
+function checkAlarme() {
+  if (!alarmeAtivo) return;
+  const blocoAgora = blocoAtual(new Date().toISOString());
+  if (ultimoBlocoAlarmado === blocoAgora) return; // já tocou neste bloco
+
+  // Só toca se houver uma turma ativa (aluno está usando o app)
+  if (!st.turma) return;
+
+  ultimoBlocoAlarmado = blocoAgora;
+  tocarAlarme();
+  mostrarToast();
+
+  // Atualiza tela do terrário se estiver aberta
+  if (st.equipe && document.getElementById('screen-equipe').classList.contains('active')) {
+    renderPaneTer();
+  }
+}
+
+function toggleAlarme() {
+  alarmeAtivo = !alarmeAtivo;
+  document.getElementById('btn-alarme').textContent = alarmeAtivo ? '🔔' : '🔕';
+  if (alarmeAtivo) {
+    ultimoBlocoAlarmado = null;
+    checkAlarme();
+  } else {
+    fecharToast();
+  }
+}
+
+// Verifica a cada 30 segundos
+setInterval(checkAlarme, 30000);
 
 // ─────────────────────────────────────────────
 // START
