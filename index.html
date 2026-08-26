@@ -71,6 +71,18 @@ h3{color:#004b8d}
 .turmas-recentes{margin-top:4px}
 .turmas-recentes h4{font-size:.88rem;color:#888;margin-bottom:8px}
 .success-banner{background:#e8f5e9;color:#2e7d32;border-radius:10px;padding:12px;text-align:center;font-weight:bold;margin-bottom:12px}
+.cor-grid{display:flex;gap:10px;flex-wrap:wrap;margin-top:8px}
+.cor-opt{width:52px;height:52px;border-radius:12px;border:3px solid #dce8f5;cursor:pointer;display:flex;flex-direction:column;align-items:center;justify-content:center;font-size:1.3rem;transition:all .15s;position:relative}
+.cor-opt:hover{border-color:#004b8d;transform:scale(1.08)}
+.cor-opt.selected{border-color:#f5821f;box-shadow:0 0 0 2px #f5821f}
+.cor-opt span{font-size:.6rem;color:#333;margin-top:2px;font-weight:bold}
+.painel-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.painel-card{background:white;border-radius:12px;padding:12px 8px 10px;text-align:center;cursor:pointer;box-shadow:0 2px 6px rgba(0,0,0,.07);transition:transform .15s;border-top:3px solid #004b8d}
+.painel-card:hover{transform:translateY(-2px)}
+.painel-card h4{color:#004b8d;font-size:.88rem;margin-top:6px;margin-bottom:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.painel-card .pmeta{font-size:.72rem;color:#666}
+.painel-card .pstatus{font-size:.75rem;font-weight:bold;margin-top:4px}
+.painel-card svg{max-width:100px;width:100%}
 </style>
 </head>
 <body>
@@ -132,9 +144,22 @@ h3{color:#004b8d}
 <main>
   <div class="page-title" id="turma-title"></div>
   <div class="turma-badge" id="turma-badge"></div>
-  <button class="btn btn-accent btn-sm" style="margin-bottom:14px" onclick="irCriarEquipe()">+ Nova Equipe</button>
+  <div style="display:flex;gap:8px;margin-bottom:14px;flex-wrap:wrap">
+    <button class="btn btn-accent btn-sm" onclick="irCriarEquipe()">+ Nova Equipe</button>
+    <button class="btn btn-outline btn-sm" onclick="irPainel()">🌿 Painel da Turma</button>
+  </div>
   <div id="err-turma" class="alert-error" style="display:none"></div>
   <div id="lista-equipes"><div class="empty-state">Carregando…</div></div>
+</main>
+</div>
+
+<!-- PAINEL -->
+<div id="screen-painel" class="screen">
+<main>
+  <div class="page-title" id="painel-title"></div>
+  <div class="turma-badge" id="painel-badge"></div>
+  <div id="err-painel" class="alert-error" style="display:none"></div>
+  <div id="painel-grid" class="painel-grid"></div>
 </main>
 </div>
 
@@ -206,6 +231,56 @@ h3{color:#004b8d}
             <circle cx="46" cy="25" r="3" fill="#26a69a"/>
           </svg>
           <div class="pname">Avenca</div>
+        </div>
+      </div>
+    </div>
+    <div class="form-group">
+      <label>Cor do vidro *</label>
+      <div class="cor-grid" id="vidro-grid">
+        <div class="cor-opt" id="vidro-transparente" onclick="selectVidro('transparente')" title="Azul">
+          <div style="width:28px;height:28px;border-radius:6px;background:rgba(100,180,255,0.55);border:2px solid #6aaac8"></div>
+          <span>Azul</span>
+        </div>
+        <div class="cor-opt" id="vidro-verde" onclick="selectVidro('verde')" title="Verde">
+          <div style="width:28px;height:28px;border-radius:6px;background:rgba(100,220,140,0.65);border:2px solid #4caf50"></div>
+          <span>Verde</span>
+        </div>
+        <div class="cor-opt" id="vidro-amarelo" onclick="selectVidro('amarelo')" title="Amarelo">
+          <div style="width:28px;height:28px;border-radius:6px;background:rgba(255,230,80,0.65);border:2px solid #f9a825"></div>
+          <span>Amarelo</span>
+        </div>
+        <div class="cor-opt" id="vidro-lilas" onclick="selectVidro('lilas')" title="Lilás">
+          <div style="width:28px;height:28px;border-radius:6px;background:rgba(190,140,255,0.60);border:2px solid #9c27b0"></div>
+          <span>Lilás</span>
+        </div>
+        <div class="cor-opt" id="vidro-rosado" onclick="selectVidro('rosado')" title="Rosa">
+          <div style="width:28px;height:28px;border-radius:6px;background:rgba(255,150,180,0.60);border:2px solid #e91e63"></div>
+          <span>Rosa</span>
+        </div>
+      </div>
+    </div>
+    <div class="form-group">
+      <label>Tipo de pedras *</label>
+      <div class="cor-grid" id="pedras-grid">
+        <div class="cor-opt" id="pedras-cinza" onclick="selectPedras('cinza')" title="Cinza">
+          <div style="width:28px;height:28px;border-radius:6px;background:#90a4ae"></div>
+          <span>Cinza</span>
+        </div>
+        <div class="cor-opt" id="pedras-rosa" onclick="selectPedras('rosa')" title="Rosa">
+          <div style="width:28px;height:28px;border-radius:6px;background:#f48fb1"></div>
+          <span>Rosa</span>
+        </div>
+        <div class="cor-opt" id="pedras-branca" onclick="selectPedras('branca')" title="Branca">
+          <div style="width:28px;height:28px;border-radius:6px;background:#e0e0e0;border:1.5px solid #ccc"></div>
+          <span>Branca</span>
+        </div>
+        <div class="cor-opt" id="pedras-preta" onclick="selectPedras('preta')" title="Preta">
+          <div style="width:28px;height:28px;border-radius:6px;background:#546e7a"></div>
+          <span>Preta</span>
+        </div>
+        <div class="cor-opt" id="pedras-colorida" onclick="selectPedras('colorida')" title="Colorida">
+          <div style="width:28px;height:28px;border-radius:6px;background:linear-gradient(135deg,#e57373 0%,#ffb74d 33%,#81c784 66%,#64b5f6 100%)"></div>
+          <span>Color</span>
         </div>
       </div>
     </div>
@@ -347,12 +422,33 @@ async function dbUpdate(turma, nome, updates) {
 }
 
 // ─────────────────────────────────────────────
+// PERSONALIZAÇÃO — cores do vidro e pedras
+// ─────────────────────────────────────────────
+const VIDRO_CORES = {
+  transparente: { fill: 'rgba(180,220,250,0.30)', stroke: '#6aaac8' },
+  verde:        { fill: 'rgba(150,230,180,0.38)', stroke: '#4caf50' },
+  amarelo:      { fill: 'rgba(255,240,150,0.40)', stroke: '#f9a825' },
+  lilas:        { fill: 'rgba(210,180,255,0.38)', stroke: '#9c27b0' },
+  rosado:       { fill: 'rgba(255,180,200,0.38)', stroke: '#e91e63' }
+};
+
+const PEDRA_CORES = {
+  cinza:    { fill: '#90a4ae', rocks: ['#78909c','#90a4ae','#607d8b'] },
+  rosa:     { fill: '#f48fb1', rocks: ['#ec407a','#f48fb1','#e91e63'] },
+  branca:   { fill: '#e8e8e8', rocks: ['#bdbdbd','#e0e0e0','#9e9e9e'] },
+  preta:    { fill: '#546e7a', rocks: ['#37474f','#546e7a','#455a64'] },
+  colorida: { fill: '#90a4ae', rocks: ['#e57373','#ffb74d','#81c784','#64b5f6','#ce93d8'] }
+};
+
+// ─────────────────────────────────────────────
 // STATE
 // ─────────────────────────────────────────────
 const st = {
   turma: null,
   equipe: null,
   plantaSel: null,
+  vidroSel: null,
+  pedrasSel: null,
   tab: 'terrario',
   back: []
 };
@@ -468,17 +564,95 @@ async function abrirEquipe(nome) {
 }
 
 // ─────────────────────────────────────────────
+// PAINEL DA TURMA
+// ─────────────────────────────────────────────
+async function irPainel() {
+  st.back.push(renderTurma);
+  showScreen('screen-painel', '🌿 Painel da Turma', true);
+  document.getElementById('painel-title').textContent = st.turma;
+  document.getElementById('painel-badge').textContent = 'Turma: ' + st.turma;
+  hideErr('err-painel');
+  document.getElementById('painel-grid').innerHTML = '<div class="empty-state">Carregando…</div>';
+  try {
+    const equipes = await dbList(st.turma);
+    renderPainel(equipes);
+  } catch(e) {
+    showErr('err-painel', 'Erro: ' + e.message);
+    document.getElementById('painel-grid').innerHTML = '';
+  }
+}
+
+function renderPainel(equipes) {
+  const grid = document.getElementById('painel-grid');
+  if (!equipes.length) {
+    grid.innerHTML = '<div class="empty-state" style="grid-column:1/-1">Nenhuma equipe ainda.<br>Crie a primeira! 🌱</div>';
+    return;
+  }
+  const labels = ['Semente','Brotinho','Mudinha','Jovem','Grande','Adulta'];
+  grid.innerHTML = equipes.map(e => {
+    const dias = uniqueDays(e.regas || []);
+    const stg = stage(dias);
+    const ultimo = ultimaRega(e.regas || []);
+    const dSem = ultimo ? daysSince(ultimo) : (e.etapaMontagem >= 5 ? 999 : -1);
+    const murcha = dSem >= 4;
+    const gotinhas = dSem >= 1 && dSem <= 2;
+    const svg = svgTerrario({
+      planta: e.planta, etapaMontagem: e.etapaMontagem,
+      showHouse: false, stage: stg, murcha, gotinhas, frase: '',
+      vidro: e.vidro, pedras: e.pedras
+    });
+    const statusIcon = murcha ? '🥀' : dSem === 0 ? '💧' : e.etapaMontagem < 5 ? '🔨' : '🌿';
+    const statusTxt = e.etapaMontagem < 5
+      ? `Montagem ${e.etapaMontagem}/5`
+      : murcha ? 'Precisa de água!' : `${dias} dia(s)`;
+    return `<div class="painel-card" data-nome="${esc(e.nome)}" onclick="irEquipeFromPainel(this.dataset.nome)">
+      ${svg}
+      <h4>${esc(e.nome)}</h4>
+      <div class="pmeta">${nomePlanta(e.planta)} · ${labels[stg]}</div>
+      <div class="pstatus" style="color:${murcha?'#c62828':e.etapaMontagem<5?'#e65100':'#2e7d32'}">${statusIcon} ${statusTxt}</div>
+    </div>`;
+  }).join('');
+}
+
+async function irEquipeFromPainel(nome) {
+  st.back.push(() => irPainel());
+  try {
+    const equipe = await dbGet(st.turma, nome);
+    if (!equipe) return;
+    st.equipe = equipe;
+    st.back.pop(); // remove the irPainel we just pushed — abrirEquipe will add its own
+    st.back.push(irPainel);
+    if (equipe.etapaMontagem < 5) renderMontagem();
+    else { st.tab = 'terrario'; renderEquipe(); }
+  } catch(e) { showErr('err-painel', e.message); }
+}
+
+// ─────────────────────────────────────────────
 // CRIAR EQUIPE
 // ─────────────────────────────────────────────
 function irCriarEquipe() {
   st.plantaSel = null;
-  document.querySelectorAll('.plant-opt').forEach(o => o.classList.remove('selected'));
+  st.vidroSel = null;
+  st.pedrasSel = null;
+  document.querySelectorAll('.plant-opt, #vidro-grid .cor-opt, #pedras-grid .cor-opt').forEach(o => o.classList.remove('selected'));
   document.getElementById('inp-nome').value = '';
   document.getElementById('inp-int').value = '';
   document.getElementById('inp-frase').value = '';
   hideErr('err-criar');
   st.back.push(renderTurma);
   showScreen('screen-criar', 'Nova Equipe', true);
+}
+
+function selectVidro(id) {
+  st.vidroSel = id;
+  document.querySelectorAll('#vidro-grid .cor-opt').forEach(o => o.classList.remove('selected'));
+  document.getElementById('vidro-' + id).classList.add('selected');
+}
+
+function selectPedras(id) {
+  st.pedrasSel = id;
+  document.querySelectorAll('#pedras-grid .cor-opt').forEach(o => o.classList.remove('selected'));
+  document.getElementById('pedras-' + id).classList.add('selected');
 }
 
 function selectPlanta(id) {
@@ -494,9 +668,13 @@ async function criarEquipe() {
   hideErr('err-criar');
   if (!nome) { showErr('err-criar', 'Por favor, informe o nome da equipe.'); return; }
   if (!st.plantaSel) { showErr('err-criar', 'Por favor, escolha uma planta.'); return; }
+  if (!st.vidroSel) { showErr('err-criar', 'Por favor, escolha a cor do vidro.'); return; }
+  if (!st.pedrasSel) { showErr('err-criar', 'Por favor, escolha o tipo de pedras.'); return; }
   const data = {
     turma: st.turma, nome, integrantes, frase,
     planta: st.plantaSel,
+    vidro: st.vidroSel,
+    pedras: st.pedrasSel,
     dataPlantio: today(),
     etapaMontagem: 0,
     regas: [], diario: []
@@ -548,7 +726,8 @@ function renderStep() {
     planta: st.equipe.planta,
     etapaMontagem: step,
     showHouse: false,
-    stage: 0, murcha: false, gotinhas: false, frase: ''
+    stage: 0, murcha: false, gotinhas: false, frase: '',
+    vidro: st.equipe.vidro, pedras: st.equipe.pedras
   });
 }
 
@@ -595,7 +774,8 @@ function renderPaneTer() {
 
   document.getElementById('eq-svg').innerHTML = svgTerrario({
     planta: e.planta, etapaMontagem: e.etapaMontagem,
-    showHouse: true, stage: stg, murcha, gotinhas, frase: e.frase || ''
+    showHouse: true, stage: stg, murcha, gotinhas, frase: e.frase || '',
+    vidro: e.vidro, pedras: e.pedras
   });
 
   const labels = ['Semente','Brotinho','Mudinha','Planta Jovem','Planta Grande','Planta Adulta'];
@@ -677,9 +857,11 @@ async function salvarDiario() {
 // ─────────────────────────────────────────────
 // SVG TERRÁRIO
 // ─────────────────────────────────────────────
-function svgTerrario({planta, etapaMontagem, showHouse, stage, murcha, gotinhas, frase}) {
+function svgTerrario({planta, etapaMontagem, showHouse, stage, murcha, gotinhas, frase, vidro, pedras}) {
   const W = 220, H = 340;
   let s = `<svg viewBox="0 0 ${W} ${H}" xmlns="http://www.w3.org/2000/svg">`;
+  const vc = VIDRO_CORES[vidro] || VIDRO_CORES.transparente;
+  const pc = PEDRA_CORES[pedras] || PEDRA_CORES.cinza;
 
   // ── Dimensões da garrafa
   const bw = showHouse ? 80 : 120;
@@ -724,8 +906,8 @@ function svgTerrario({planta, etapaMontagem, showHouse, stage, murcha, gotinhas,
   }
 
   // ── GARRAFA: corpo + gargalo
-  const glass = 'rgba(180,220,250,0.30)';
-  const glassStroke = '#6aaac8';
+  const glass = vc.fill;
+  const glassStroke = vc.stroke;
   s += `<rect x="${bx}" y="${bodyY}" width="${bw}" height="${bodyH}" rx="12" fill="${glass}" stroke="${glassStroke}" stroke-width="2"/>`;
   s += `<rect x="${nx}" y="${by}" width="${nw}" height="${neckH+6}" rx="7" fill="${glass}" stroke="${glassStroke}" stroke-width="2"/>`;
   // Tampa
@@ -734,11 +916,11 @@ function svgTerrario({planta, etapaMontagem, showHouse, stage, murcha, gotinhas,
   // ── CAMADAS
   if (showP) {
     const py = bottomY - pH;
-    s += `<rect x="${bx+3}" y="${py}" width="${bw-6}" height="${pH}" fill="#90a4ae" rx="3"/>`;
+    s += `<rect x="${bx+3}" y="${py}" width="${bw-6}" height="${pH}" fill="${pc.fill}" rx="3"/>`;
     for (let i=0;i<7;i++) {
       const px2 = bx+8+i*((bw-16)/7);
       const r=2.5+Math.sin(i*1.9)*1.5;
-      s += `<ellipse cx="${px2}" cy="${py+11}" rx="${r}" ry="${r*.8}" fill="#78909c"/>`;
+      s += `<ellipse cx="${px2}" cy="${py+11}" rx="${r}" ry="${r*.8}" fill="${pc.rocks[i % pc.rocks.length]}"/>`;
     }
   }
   if (showS) {
@@ -772,8 +954,8 @@ function svgTerrario({planta, etapaMontagem, showHouse, stage, murcha, gotinhas,
 
   // ── Reflexo do vidro
   s += `<line x1="${bx+8}" y1="${bodyY+14}" x2="${bx+8}" y2="${bodyY+bodyH-18}" stroke="rgba(255,255,255,.45)" stroke-width="3.5" stroke-linecap="round"/>`;
-  // Contorno por cima das camadas
-  s += `<rect x="${bx}" y="${bodyY}" width="${bw}" height="${bodyH}" rx="12" fill="none" stroke="${glassStroke}" stroke-width="2"/>`;
+  // Contorno por cima das camadas (reforça a borda colorida)
+  s += `<rect x="${bx}" y="${bodyY}" width="${bw}" height="${bodyH}" rx="12" fill="none" stroke="${glassStroke}" stroke-width="2.5"/>`;
 
   s += `</svg>`;
   return s;
