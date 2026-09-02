@@ -1,0 +1,15 @@
+services:
+  web:
+    image: node:22
+    working_dir: /app
+    volumes:
+      - ./:/app
+      - browsersync-cache:/root/.npm
+    ports:
+      - "3000:3000"
+    command: >
+      sh -c "npx --yes browser-sync start --server --host 0.0.0.0 --port 3000
+      --no-open --no-notify --index index.html --files 'index.html'"
+
+volumes:
+  browsersync-cache:
