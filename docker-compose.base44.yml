@@ -2,14 +2,25 @@ services:
   web:
     image: node:22
     working_dir: /app
+    restart: on-failure
     volumes:
       - ./:/app
       - browsersync-cache:/root/.npm
+    environment:
+      - BASE44_PREVIEW_MODE
+      - __VITE_ADDITIONAL_SERVER_ALLOWED_HOSTS
     ports:
       - "3000:3000"
     command: >
       sh -c "npx --yes browser-sync start --server --host 0.0.0.0 --port 3000
-      --no-open --no-notify --index index.html --files 'index.html'"
+      --no-open --no-notify --index index.html
+      --files 'index.html,src/**/*.js,vendor/**/*.js'"
+    healthcheck:
+      test: ["CMD-SHELL", "curl -fsS http://localhost:3000/ | grep -qi 'lanterna' || exit 1"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
 
 volumes:
   browsersync-cache:
