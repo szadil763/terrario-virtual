@@ -4,19 +4,22 @@ const KEY = 'luzdobosque.settings.v1';
 
 export const DEFAULT_BINDINGS = {
   forward: 'KeyW', back: 'KeyS', left: 'KeyA', right: 'KeyD',
-  jump: 'Space', dash: 'KeyQ', trick: 'KeyR',
+  jump: 'Space', dash: 'KeyQ', trick: 'KeyR', sprint: 'ShiftLeft',
   attack: 'KeyJ', defense: 'KeyK', special: 'KeyU', toggle: 'KeyI',
   interact: 'KeyE', map: 'KeyM', pause: 'Escape',
+  camLeft: 'ArrowLeft', camRight: 'ArrowRight', camUp: 'ArrowUp', camDown: 'ArrowDown',
 };
 
 export const DEFAULT_MOUSE = { attack: 0, defense: 2, special: 1, toggle: 3 };
 
 export const ACTION_LABELS = {
   forward: 'Ir para frente', back: 'Ir para trás', left: 'Esquerda', right: 'Direita',
-  jump: 'Pular', dash: 'Dash (Q)', trick: 'Manobra da lanterna (R)',
+  jump: 'Pular', dash: 'Dash (Q)', sprint: 'Correr (Shift)',
+  trick: 'Manobra da lanterna (R)',
   attack: 'Ataque da lanterna (M1)', defense: 'Defesa / mira (M2)',
   special: 'Habilidade especial (M3)', toggle: 'Alternar poder (M4)',
   interact: 'Interagir', map: 'Mapa', pause: 'Pausa',
+  camLeft: 'Câmera ←', camRight: 'Câmera →', camUp: 'Câmera ↑', camDown: 'Câmera ↓',
 };
 
 const MOUSE_NAMES = { 0: 'M1 esquerdo', 1: 'M3 meio', 2: 'M2 direito', 3: 'M4 extra' };
@@ -103,6 +106,7 @@ export class Settings {
     if (key.startsWith('Key')) return key.slice(3);
     if (key === 'Space') return 'Espaço';
     if (key === 'Escape') return 'Esc';
+    if (key === 'ShiftLeft') return 'Shift';
     if (key.startsWith('Digit')) return key.slice(5);
     return key || '—';
   }

@@ -131,7 +131,7 @@ export class Lantern {
     this.glow = this.effects.attachGlow(this.core, this.color.getStyle(), 1.5);
 
     // luz principal (ilumina o cenário)
-    this.light = new THREE.PointLight(this.color.clone(), 2.6, 24, 1.7);
+    this.light = new THREE.PointLight(this.color.clone(), 3.4, 30, 1.55);
     this.light.position.y = -0.04;
     this.group.add(this.light);
 
@@ -171,7 +171,7 @@ export class Lantern {
     return {
       damage: 12 + lv('dano') * 6,
       range: 18 + lv('alcance') * 5 + rel.lightRange,
-      lightRange: 24 + lv('alcance') * 4 + rel.lightRange,
+      lightRange: 30 + lv('alcance') * 4 + rel.lightRange,
       efficiency: 1 - Math.min(0.6, lv('eficiencia') * 0.14 + rel.efficiency),
       cooldownScale: 1 - Math.min(0.55, lv('recarga') * 0.12),
       shieldMax: 3.2 + lv('escudo') * 1.4 + rel.shieldDuration,
@@ -250,7 +250,7 @@ export class Lantern {
   _syncLight() {
     const s = this.stats;
     this.light.distance = s.lightRange;
-    this.light.intensity = 2.2 + (s.lightRange - 24) * 0.06;
+    this.light.intensity = 3.0 + (s.lightRange - 30) * 0.06;
   }
 
   cooldownReady(action) { return this.cooldowns[action] <= 0; }

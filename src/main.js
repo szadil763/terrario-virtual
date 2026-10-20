@@ -149,7 +149,7 @@ class Game {
   }
 
   applySettings() {
-    this.renderer.toneMappingExposure = 0.95 * clamp(this.settings.get('brightness'), 0.6, 1.6);
+    this.renderer.toneMappingExposure = 1.08 * clamp(this.settings.get('brightness'), 0.6, 1.6);
     document.documentElement.style.setProperty('--ui', String(this.settings.get('textScale')));
     this.hud.applyTouchPreference();
   }
@@ -364,8 +364,10 @@ class Game {
 
   updateCamera(dt) {
     this.cameraRig.lookFromPointer(this.input, dt);
+    const moving = this.player.moveSpeedRatio > 0.3 && this.player.grounded;
     this.cameraRig.update(dt, this.player.position, this.input, {
       aiming: this.player.aiming, moveDir: this.player.moveDir,
+      world: this.world, autoAlign: moving && !this.player.aiming,
     });
   }
 
@@ -457,7 +459,7 @@ class Game {
     this.world.populate(this.enemies);
     this.lantern.unlockMode('escudo');
     this.fsm.set('playing');
-    this.hud.hint('WASD para andar · M1 atirar luz · segure M1 para carregar · R faz manobras!', 9);
+    this.hud.hint('WASD anda · SHIFT corre · setas ou mouse giram a câmera · M1 atira luz · segure M1 para carregar!', 9);
     this.hud.toast('Encontre Lumi, o vagalume-guia, no acampamento.', '🏮');
     this.autosave(true);
   }

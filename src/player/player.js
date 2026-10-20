@@ -205,7 +205,11 @@ export class Player {
     this.moveDir.copy(desired);
 
     const dashing = this.fsm.is('dash');
-    const maxSpeed = (aiming ? 2.6 : 6.6) * Math.max(0.35, axis.magnitude);
+    // corrida estilo Nintendo: segure Shift e vá mais longe, sem gastar energia
+    const sprinting = !aiming && !locked && !dashing && !this.fsm.is('trick')
+      && axis.magnitude > 0.2 && input.isDown('sprint');
+    this.sprinting = sprinting;
+    const maxSpeed = (aiming ? 2.6 : sprinting ? 9.4 : 6.6) * Math.max(0.35, axis.magnitude);
     const accel = this.grounded ? 34 : 14;
     const targetVX = dashing ? this.dashDirection.x * 18 : desired.x * maxSpeed;
     const targetVZ = dashing ? this.dashDirection.z * 18 : desired.z * maxSpeed;
@@ -233,7 +237,7 @@ export class Player {
     this.coyote = this.grounded ? 0.12 : Math.max(0, this.coyote - dt);
 
     if (this.jumpBuffer > 0 && this.coyote > 0 && !this.fsm.is('dash') && !this.fsm.is('trick')) {
-      this.velocity.y = 8.7;
+      this.velocity.y = 9.2;
       this.grounded = false;
       this.coyote = 0;
       this.jumpBuffer = 0;

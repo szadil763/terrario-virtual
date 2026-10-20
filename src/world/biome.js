@@ -370,11 +370,12 @@ export class World {
     this._buildEnemies();
 
     // ---- névoa e ambiente luminoso
-    this.scene.fog = new THREE.FogExp2(new THREE.Color('#060a14'), 0.022);
-    this.scene.background = new THREE.Color('#05070f');
-    const hemi = new THREE.HemisphereLight(new THREE.Color('#2a3a63'), new THREE.Color('#080d16'), 0.5);
+    // ambiente mais luminoso e acolhedor (estilo Nintendo: o escuro convida, não esconde)
+    this.scene.fog = new THREE.FogExp2(new THREE.Color('#0d1530'), 0.016);
+    this.scene.background = new THREE.Color('#0a1126');
+    const hemi = new THREE.HemisphereLight(new THREE.Color('#3c5a94'), new THREE.Color('#101a30'), 0.85);
     this.scene.add(hemi);
-    const moon = new THREE.DirectionalLight(new THREE.Color('#7f9ddb'), 0.22);
+    const moon = new THREE.DirectionalLight(new THREE.Color('#9db8f0'), 0.36);
     moon.position.set(-30, 40, -20);
     this.scene.add(moon);
     this.lights = { hemi, moon };
@@ -994,8 +995,8 @@ export class World {
     // luz conforme brilho escolhido
     if (this.lights) {
       const b = clamp(this.deps.settings.get('brightness'), 0.6, 1.6);
-      this.lights.hemi.intensity = 0.5 * b;
-      this.lights.moon.intensity = 0.22 * b;
+      this.lights.hemi.intensity = 0.85 * b;
+      this.lights.moon.intensity = 0.36 * b;
     }
   }
 

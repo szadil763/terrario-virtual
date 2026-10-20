@@ -23,7 +23,7 @@ export class HUD {
       prompt: $('prompt'), promptKey: $('prompt-key'), promptText: $('prompt-text'),
       bossbar: $('bossbar'), bossName: $('boss-name'), bossFill: $('boss-fill'),
       toasts: $('toasts'), hint: $('hint'), safe: $('safe-badge'), vignette: $('vignette'),
-      touch: $('touch'), joy: $('joy'), joyKnob: $('joy-knob'), gear: $('gear'),
+      touch: $('touch'), joy: $('joy'), joyKnob: $('joy-knob'), gear: $('gear'), lookzone: $('lookzone'),
     };
     this.mm = this.el.minimap.getContext('2d');
     this.bindEvents();
@@ -81,6 +81,25 @@ export class HUD {
       btn.addEventListener('pointercancel', release);
       btn.addEventListener('pointerleave', release);
     });
+
+    // zona de câmera: arrastar na parte de cima da tela gira a câmera (como no Mario 3D)
+    const look = this.el.lookzone;
+    if (!look) return;
+    let lookId = null, lastX = 0, lastY = 0;
+    const fromEvent = (e) => {
+      if (!Number.isFinite(e.clientX) || !Number.isFinite(e.clientY)) return;
+      this.input.addLookDelta(e.clientX - lastX, e.clientY - lastY);
+      lastX = e.clientX; lastY = e.clientY;
+    };
+    look.addEventListener('pointerdown', (e) => {
+      if (lookId !== null) return;
+      lookId = e.pointerId; lastX = e.clientX; lastY = e.clientY;
+      try { look.setPointerCapture(e.pointerId); } catch { /* ponteiro sintético */ }
+    });
+    look.addEventListener('pointermove', (e) => { if (lookId === e.pointerId) fromEvent(e); });
+    const endLook = (e) => { if (lookId === e.pointerId) lookId = null; };
+    look.addEventListener('pointerup', endLook);
+    look.addEventListener('pointercancel', endLook);
   }
 
   /** Mostra/oculta os controles de toque conforme dispositivo e opção. */

@@ -168,6 +168,7 @@ footer.tip{color:var(--ink-soft);font-size:.8em;text-align:center;margin-top:14p
   background:rgba(10,16,30,.42);border:2px solid rgba(150,220,255,.3);pointer-events:auto}
 #joy-knob{position:absolute;left:50%;top:50%;width:56px;height:56px;margin:-28px 0 0 -28px;border-radius:50%;
   background:radial-gradient(circle at 35% 30%,rgba(200,245,255,.9),rgba(90,180,220,.6))}
+#lookzone{position:absolute;top:0;right:0;left:28%;bottom:390px;pointer-events:auto}
 .tbtns{position:absolute;right:16px;bottom:96px;display:grid;grid-template-columns:repeat(2,64px);gap:10px;pointer-events:auto}
 .tbtn{
   width:64px;height:64px;border-radius:50%;background:rgba(10,16,30,.62);border:2px solid rgba(150,220,255,.34);
@@ -211,6 +212,7 @@ footer.tip{color:var(--ink-soft);font-size:.8em;text-align:center;margin-top:14p
 <!-- ============================================================= touch -->
 <div id="touch" class="hidden">
   <div id="joy"><div id="joy-knob"></div></div>
+  <div id="lookzone"></div>
   <div class="tbtns">
     <button class="tbtn" data-action="jump">⤒<span class="lbl">PULAR</span></button>
     <button class="tbtn" data-action="attack">✦<span class="lbl">ATACAR</span></button>
@@ -220,6 +222,7 @@ footer.tip{color:var(--ink-soft);font-size:.8em;text-align:center;margin-top:14p
     <button class="tbtn" data-action="toggle">🔆<span class="lbl">PODER</span></button>
     <button class="tbtn" data-action="interact">✋<span class="lbl">AÇÃO</span></button>
     <button class="tbtn" data-action="trick">🎩<span class="lbl">TRUQUE</span></button>
+    <button class="tbtn" data-action="sprint">»»<span class="lbl">CORRER</span></button>
   </div>
 </div>
 

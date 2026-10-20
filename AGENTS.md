@@ -52,6 +52,12 @@ src/ui/menus.js           título, pausa, opções, melhorias, mochila, missões
   `input.consume(...)` — sem isso a mesma tecla é lida duas vezes no mesmo quadro (a pausa voltava a pausar).
 - **Áreas seguras são de verdade:** `world.isSafe(position)` desliga a IA dos inimigos e do minichefe.
   Se mexer nisso, o jogador volta a morrer no acampamento em segundos (já aconteceu).
+- **Câmera:** controlada por 4 fontes — cursor na tela (`lookFromPointer`), setas do teclado
+  (`camLeft/Right/Up/Down`), arraste na `#lookzone` (toque, via `input.addLookDelta`/`consumeLookDelta`)
+  e recentralização automática (`autoAlign`, só depois de 2,2 s sem toque manual, marcado por
+  `manualTimer`). A câmera nunca desce abaixo de `terrainHeight + 0,7` (o `world` entra em
+  `updateCamera` como `opts.world`). Corrida (Shift/`sprint`) multiplica a velocidade em ~1,4×,
+  sem custo de energia.
 - **Eixos de toque:** `input.touchAxis` é `{x, z}` e `setTouchAxis`/`moveAxis` saneiam valores não finitos.
   Um evento de ponteiro sem coordenadas já contaminou a posição do jogador (NaN + queda infinita); o
   `Player.update` tem uma rede de segurança que devolve o aventureiro ao ponto de descanso.

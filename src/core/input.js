@@ -20,6 +20,7 @@ export class Input {
     this.mouse = { x: 0, y: 0, nx: 0, ny: 0, dx: 0, dy: 0, wheel: 0 };
     this.touchAxis = { x: 0, z: 0 };
     this.touchDir = { x: 0, y: 0, active: false };
+    this.lookDelta = { x: 0, y: 0 }; // arraste de toque para girar a câmera
     this.capture = null; // ação aguardando novo comando (remapeamento)
     this.enabled = true;
     this.pointerActive = false;
@@ -96,6 +97,8 @@ export class Input {
 
   actionForCode(code) {
     const b = this.settings.bindings;
+    // qualquer tecla Shift dispara a corrida (acessibilidade: ambos os lados do teclado)
+    if (code.startsWith('Shift') && (b.sprint || '').startsWith('Shift')) return 'sprint';
     for (const action of ACTIONS) if (b[action] === code) return action;
     return null;
   }
@@ -125,6 +128,18 @@ export class Input {
   }
 
   consumeWheel() { const w = this.mouse.wheel; this.mouse.wheel = 0; return w; }
+
+  /** Acumula o arraste da zona de câmera (toque) — consumido pela câmera a cada quadro. */
+  addLookDelta(dx, dy) {
+    if (Number.isFinite(dx)) this.lookDelta.x = clamp(this.lookDelta.x + dx, -80, 80);
+    if (Number.isFinite(dy)) this.lookDelta.y = clamp(this.lookDelta.y + dy, -80, 80);
+  }
+
+  consumeLookDelta() {
+    const d = { x: this.lookDelta.x, y: this.lookDelta.y };
+    this.lookDelta.x = 0; this.lookDelta.y = 0;
+    return d;
+  }
 
   endFrame() {
     this.pressed.clear();
