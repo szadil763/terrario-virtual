@@ -59,6 +59,7 @@ export class AvatarStudio {
     this.open = true;
     this.el.screen.classList.remove('hidden');
     this._setupScene();
+    this._rebuildPreview();
     this.render();
     this._resize();
     this._last = performance.now();
@@ -99,20 +100,20 @@ export class AvatarStudio {
     const rim = new THREE.PointLight(new THREE.Color('#9be7ff'), 6, 14, 2);
     rim.position.set(-2.6, 2.4, -2.4);
     this._scene.add(rim);
-    const warm = new THREE.PointLight(new THREE.Color('#ffb7e0'), 4, 12, 2);
+    const warm = new THREE.PointLight(new THREE.Color('#ffcf8a'), 4, 12, 2);
     warm.position.set(2.4, 1.2, 2.2);
     this._scene.add(warm);
 
     const floor = new THREE.Mesh(
       new THREE.CircleGeometry(1.9, 40),
-      new THREE.MeshBasicMaterial({ color: 0x2b2350, transparent: true, opacity: 0.55 }),
+      new THREE.MeshBasicMaterial({ color: 0x18202e, transparent: true, opacity: 0.7 }),
     );
     floor.rotation.x = -Math.PI / 2;
     floor.position.y = -0.01;
     this._scene.add(floor);
     const halo = new THREE.Mesh(
       new THREE.RingGeometry(1.55, 1.9, 48),
-      new THREE.MeshBasicMaterial({ color: 0x9be7ff, transparent: true, opacity: 0.22, side: THREE.DoubleSide }),
+      new THREE.MeshBasicMaterial({ color: 0x4ade80, transparent: true, opacity: 0.22, side: THREE.DoubleSide }),
     );
     halo.rotation.x = -Math.PI / 2;
     halo.position.y = 0.005;

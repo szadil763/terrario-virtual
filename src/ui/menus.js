@@ -137,6 +137,7 @@ export class Menus {
     const diff = s.get('difficulty') <= 0.7 ? 'facil' : s.get('difficulty') >= 1.3 ? 'desafiador' : 'normal';
 
     panel.innerHTML = `
+      <div class="eyebrow">Ajustes do jogo</div>
       <h2>⚙ Opções e acessibilidade</h2>
       <h3>Conforto visual</h3>
       ${slider('brightness', 'Brilho da cena', 0.6, 1.6, 0.05, (v) => `${Math.round(v * 100)}%`)}
@@ -232,6 +233,7 @@ export class Menus {
     if (!body) return;
     const s = this.settings;
     body.innerHTML = `
+      <div class="eyebrow">Aprenda a jogar</div>
       <h2>🎮 Controles</h2>
       <div class="kv"><span>Mover</span><span><span class="key">W</span> <span class="key">A</span> <span class="key">S</span> <span class="key">D</span></span></div>
       <div class="kv"><span>Dash (desviar e passar por espaços)</span><span class="key">${s.keyLabel('dash')}</span></div>
@@ -285,6 +287,7 @@ export class Menus {
       </div>`).join('');
 
     panel.innerHTML = `
+      <div class="eyebrow">Sua lanterna mágica</div>
       <h2>🏮 Melhorias da lanterna</h2>
       <p>Cristais disponíveis: <b>🔷 ${crystals}</b> · Fragmentos: <b>✨ ${game.inventory.count('fragmento')}</b></p>
       <div class="list" style="margin-top:10px">${rows}</div>
@@ -326,6 +329,7 @@ export class Menus {
       </div>`).join('');
 
     panel.innerHTML = `
+      <div class="eyebrow">O que você encontrou</div>
       <h2>🎒 Mochila</h2>
       <p>Itens coletados explorando o bosque.</p>
       <div class="list" style="margin-top:10px">
@@ -354,6 +358,7 @@ export class Menus {
       }).join('');
     };
     panel.innerHTML = `
+      <div class="eyebrow">Diário de aventura</div>
       <h2>📜 Missões</h2>
       ${active.length ? active.map(([id]) => `<h3>${q.defs[id].title}</h3>${renderSteps(id)}`).join('') : '<p>Nenhuma missão ativa. Converse com Lumi no acampamento.</p>'}
       <h3>Concluídas</h3>
@@ -375,8 +380,9 @@ export class Menus {
         <span class="pill ${b.locked ? 'off' : ''}">${b.locked ? 'Em breve' : 'Explorando'}</span>
       </div>`).join('');
     panel.innerHTML = `
+      <div class="eyebrow">Explore sem se perder</div>
       <h2>🗺 Mapa do bosque</h2>
-      <canvas id="map-canvas" width="640" height="640" style="width:100%;max-width:420px;display:block;margin:0 auto;border-radius:16px;background:rgba(6,10,20,.8);border:1px solid rgba(150,220,255,.3)"></canvas>
+      <canvas id="map-canvas" width="640" height="640" style="width:100%;max-width:420px;display:block;margin:0 auto;border-radius:16px;background:#0a0e15;border:1px solid rgba(255,255,255,.1)"></canvas>
       <p style="text-align:center">Bússola: <b>N</b> aponta para o topo. Os ícones mostram baús, NPCs, flores e o altar.</p>
       <h3>Biomas do mundo</h3>
       <div class="list">${biomes}</div>
