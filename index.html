@@ -177,6 +177,93 @@ footer.tip{color:var(--ink-soft);font-size:.8em;text-align:center;margin-top:14p
 .tbtn .lbl{font-size:.44em;color:var(--ink-soft)}
 .tbtn.on{background:rgba(87,217,154,.4);border-color:var(--glow)}
 #toast-mobile{position:absolute;right:16px;bottom:calc(96px + 150px)}
+/* ------------------------------------------------------------------ avatar studio */
+#avatar-studio{position:fixed;inset:0;z-index:90;display:flex;align-items:center;justify-content:center;padding:10px;
+  background:radial-gradient(circle at 50% 0%,#332159,#161129 55%,#08060f 100%)}
+.studio{width:min(1080px,100%);height:min(94vh,900px);display:flex;flex-direction:column;
+  background:linear-gradient(180deg,rgba(48,36,80,.97),rgba(18,15,34,.99));
+  border:1px solid rgba(190,160,255,.35);border-radius:26px;overflow:hidden;
+  box-shadow:0 30px 90px rgba(0,0,0,.65),inset 0 1px 0 rgba(255,255,255,.1)}
+.studio-head{display:flex;align-items:center;gap:12px;padding:12px 16px;
+  background:linear-gradient(90deg,rgba(126,242,176,.18),rgba(99,211,255,.12),rgba(255,155,232,.16));
+  border-bottom:1px solid rgba(255,255,255,.09)}
+.studio-head h2{font-size:1.15em;letter-spacing:.4px}
+.studio-head .hint{font-size:.78em;color:var(--ink-soft);line-height:1.3;margin-top:2px}
+.studio-head-text{flex:1;min-width:0}
+.studio-wallet{display:flex;align-items:center;gap:5px;padding:6px 12px;border-radius:999px;
+  background:rgba(255,212,121,.16);border:1px solid rgba(255,212,121,.45);font-weight:bold;color:#ffe6a8}
+.studio-x{width:36px;height:36px;border-radius:50%;background:rgba(255,255,255,.08);
+  border:1px solid rgba(255,255,255,.2);font-size:1.05em}
+.studio-body{display:flex;flex:1;min-height:0;gap:10px;padding:10px}
+.studio-stage{position:relative;flex:1.05;min-height:220px;border-radius:20px;overflow:hidden;
+  background:radial-gradient(circle at 50% 38%,#43346f,#1b1633 72%);border:1px solid rgba(255,255,255,.09)}
+#studio-canvas{position:absolute;inset:0;width:100%;height:100%;display:block;touch-action:none}
+.stage-name{position:absolute;left:12px;bottom:12px;padding:5px 12px;border-radius:999px;
+  background:rgba(10,8,24,.72);border:1px solid rgba(255,255,255,.16);font-size:.82em;font-weight:bold}
+.stage-tools{position:absolute;right:10px;top:10px;display:flex;flex-direction:column;gap:6px}
+.stage-tools .btn{background:rgba(10,8,24,.7)}
+.studio-panel{flex:1.15;display:flex;flex-direction:column;min-height:0}
+.studio-tabs{display:flex;flex-wrap:wrap;gap:6px;padding:2px 0 8px}
+.studio-tab{display:flex;align-items:center;gap:5px;padding:7px 11px;border-radius:999px;font-size:.8em;font-weight:bold;
+  background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.14);color:var(--ink-soft)}
+.studio-tab.on{background:linear-gradient(180deg,rgba(126,242,176,.35),rgba(60,180,140,.35));
+  border-color:rgba(126,242,176,.65);color:#eafff5;box-shadow:0 0 16px rgba(126,242,176,.25)}
+.studio-grid{flex:1;overflow-y:auto;padding-right:6px}
+.studio-section{display:flex;flex-direction:column;margin:10px 0 6px}
+.studio-section b{font-size:.92em;color:#fff}
+.studio-section .hint{font-size:.76em;color:var(--ink-soft)}
+.studio-cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(92px,1fr));gap:8px;margin-bottom:4px}
+.studio-cards.tight{grid-template-columns:repeat(auto-fill,minmax(78px,1fr))}
+.acard{position:relative;display:flex;flex-direction:column;align-items:center;gap:2px;
+  padding:9px 6px 8px;border-radius:16px;min-height:98px;color:var(--ink);text-align:center;
+  background:linear-gradient(180deg,rgba(255,255,255,.1),rgba(255,255,255,.03));
+  border:2px solid rgba(255,255,255,.13);transition:transform .12s,box-shadow .2s}
+.acard:hover{transform:translateY(-2px)}
+.acard.sel{border-color:var(--glow);box-shadow:0 0 0 2px rgba(126,242,176,.35),0 10px 24px rgba(0,0,0,.4)}
+.acard-ico{font-size:1.6em;line-height:1.15}
+.acard-name{font-size:.72em;line-height:1.2;font-weight:bold}
+.acard-rar{font-size:.6em;text-transform:uppercase;letter-spacing:.8px;color:var(--ink-soft)}
+.acard-lock{font-size:.6em;padding:1px 6px;border-radius:999px;background:rgba(0,0,0,.35);
+  border:1px solid rgba(255,255,255,.12);color:#ffd479}
+.acard-lock.free{color:#9fe8c4;border-color:rgba(126,242,176,.3)}
+.acard.locked{opacity:.92}
+.acard.locked .acard-ico{filter:grayscale(.45)}
+.acard-sel{position:absolute;top:4px;right:5px;width:18px;height:18px;border-radius:50%;
+  background:var(--glow);color:#08281a;font-size:.68em;font-weight:bold;display:flex;align-items:center;justify-content:center}
+.rar-comum{border-color:rgba(159,180,216,.45)}
+.rar-raro{border-color:rgba(99,211,255,.6);box-shadow:0 0 10px rgba(99,211,255,.12)}
+.rar-epico{border-color:rgba(199,155,255,.7);box-shadow:0 0 14px rgba(199,155,255,.2)}
+.rar-lendario{border-color:#ffd479;box-shadow:0 0 18px rgba(255,212,121,.28)}
+.rar-mitico{border-color:#ff9be8;animation:mythicGlow 3s ease-in-out infinite}
+@keyframes mythicGlow{
+  0%,100%{box-shadow:0 0 12px rgba(255,155,232,.35);border-color:#ff9be8}
+  50%{box-shadow:0 0 26px rgba(155,232,255,.55);border-color:#9be8ff}
+}
+.acard.expr{min-height:74px;padding:7px 4px}
+.studio-col-head{display:flex;align-items:center;gap:7px;margin:12px 0 6px;font-size:.88em}
+.studio-col-head .dot{width:9px;height:9px;border-radius:50%;box-shadow:0 0 10px currentColor}
+.studio-col-head .hint{margin-left:auto;font-size:.78em;color:var(--ink-soft)}
+.studio-swatches{display:flex;flex-wrap:wrap;gap:7px;margin-bottom:4px}
+.swatch{width:30px;height:30px;border-radius:50%;background:var(--c);border:2px solid rgba(255,255,255,.25);
+  box-shadow:inset 0 -4px 8px rgba(0,0,0,.28)}
+.swatch.on{border-color:#fff;box-shadow:0 0 0 3px rgba(126,242,176,.45),inset 0 -4px 8px rgba(0,0,0,.28)}
+.studio-foot{display:flex;gap:8px;padding:10px 14px 14px;border-top:1px solid rgba(255,255,255,.08);
+  background:linear-gradient(0deg,rgba(8,6,16,.7),transparent)}
+.studio-foot .btn{flex:1;padding:12px}
+#btn-avatar{position:absolute;left:10px;top:66px;pointer-events:auto;display:flex;align-items:center;gap:6px;
+  padding:7px 13px;border-radius:999px;font-size:.74em;font-weight:bold;letter-spacing:.5px;
+  background:linear-gradient(180deg,rgba(255,155,232,.4),rgba(96,64,150,.7));
+  border:1px solid rgba(255,190,240,.6);box-shadow:0 8px 22px rgba(0,0,0,.45)}
+#btn-avatar:hover{filter:brightness(1.15)}
+@media (max-width:760px){
+  .studio{height:min(96vh,900px);border-radius:22px}
+  .studio-body{flex-direction:column}
+  .studio-stage{flex:0 0 33vh;min-height:180px}
+  .studio-grid{max-height:38vh}
+  .studio-cards{grid-template-columns:repeat(auto-fill,minmax(82px,1fr))}
+  .acard{min-height:88px}
+}
+
 @media (max-width:640px){
   .panel{padding:16px}
   .panel h1{font-size:1.7em}
@@ -199,6 +286,7 @@ footer.tip{color:var(--ink-soft);font-size:.8em;text-align:center;margin-top:14p
     <div id="minimap-wrap"><canvas id="minimap" width="252" height="252"></canvas><div id="compass">N</div></div>
   </div>
   <button id="gear" title="Menu (Esc)">☰</button>
+  <button id="btn-avatar" title="Trocar avatar">🎭 <span>TROCAR AVATAR</span></button>
   <div id="quest-tracker" class="hidden"><div class="qt">MISSÃO</div><div id="quest-text">—</div></div>
   <div id="prompt" class="hidden"><span class="key" id="prompt-key">E</span><span id="prompt-text"></span></div>
   <div id="bossbar" class="hidden"><div class="name" id="boss-name">Guardião</div><div class="bar"><div class="fill" id="boss-fill"></div></div></div>
@@ -263,6 +351,7 @@ footer.tip{color:var(--ink-soft);font-size:.8em;text-align:center;margin-top:14p
       <p id="pause-stats"></p>
       <div class="menu">
         <button class="btn primary" id="btn-resume">▶ Continuar</button>
+        <button class="btn" id="btn-avatar-pause">🎭 Trocar avatar</button>
         <button class="btn" id="btn-upgrades">🏮 Melhorias da lanterna</button>
         <button class="btn" id="btn-inventory">🎒 Mochila</button>
         <button class="btn" id="btn-quests">📜 Missões</button>
@@ -288,6 +377,38 @@ footer.tip{color:var(--ink-soft);font-size:.8em;text-align:center;margin-top:14p
       <p>Sem problema! A lanterna se recupera nos pontos de descanso. Coragem é continuar mesmo depois de um susto.</p>
       <button class="btn primary" id="btn-respawn">🔆 Levantar de novo</button>
     </div>
+  </div>
+</div>
+
+<!-- ========================================================= avatar studio -->
+<div id="avatar-studio" class="hidden">
+  <div class="studio">
+    <header class="studio-head">
+      <div class="studio-head-text">
+        <h2>🎭 Trocar avatar</h2>
+        <p class="hint" id="studio-sub"></p>
+      </div>
+      <div class="studio-wallet"><span id="studio-coins">0</span> 🪙</div>
+      <button class="studio-x" id="studio-close" aria-label="Fechar">✕</button>
+    </header>
+    <div class="studio-body">
+      <div class="studio-stage" id="studio-stage">
+        <canvas id="studio-canvas"></canvas>
+        <div class="stage-name" id="studio-species-name">Pip, o Pinguim</div>
+        <div class="stage-tools">
+          <button class="btn small ghost" data-studio="rotate">↻ Girar</button>
+          <button class="btn small ghost" data-studio="cheer">🎉 Comemorar</button>
+        </div>
+      </div>
+      <div class="studio-panel">
+        <div class="studio-tabs" id="studio-tabs"></div>
+        <div class="studio-grid" id="studio-grid"></div>
+      </div>
+    </div>
+    <footer class="studio-foot">
+      <button class="btn ghost" id="studio-reset">↺ Resetar</button>
+      <button class="btn primary" id="studio-apply">✓ Aplicar visual</button>
+    </footer>
   </div>
 </div>
 

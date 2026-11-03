@@ -3,15 +3,16 @@
 
 import * as THREE from 'three';
 import { StateMachine, clamp, damp, lerp, rand } from '../core/state.js';
-
-const SKIN = { body: '#ffd39b', hood: '#3fb8a0', hoodDark: '#2b8c7a', pants: '#4a5fa8', scarf: '#ff8f6b', boot: '#6b4a2f' };
+import { buildAvatar, disposeAvatar } from '../avatar/builder.js';
+import { DEFAULT_AVATAR } from '../avatar/catalog.js';
 
 export class Player {
-  constructor(scene, { settings, events, effects, audio }) {
+  constructor(scene, { settings, events, effects, audio, avatar }) {
     this.settings = settings;
     this.events = events;
     this.effects = effects;
     this.audio = audio;
+    this.avatarConfig = { ...DEFAULT_AVATAR, ...(avatar || {}) };
 
     this.radius = 0.45;
     this.height = 1.8;
@@ -59,113 +60,10 @@ export class Player {
 
   // ------------------------------------------------------------ construção
   _build(scene) {
-    const mat = (color, opts = {}) => {
-      const m = new THREE.MeshLambertMaterial({ color: new THREE.Color(color), flatShading: true, ...opts });
-      this.materials.push(m);
-      return m;
-    };
     this.group = new THREE.Group();
     this.group.name = 'player';
-
-    this.body = new THREE.Group();
-    this.body.position.y = 0.02;
-    this.group.add(this.body);
-
-    const torso = new THREE.Mesh(new THREE.CapsuleGeometry(0.32, 0.42, 4, 12), mat(SKIN.hood));
-    torso.position.y = 1.16;
-    torso.castShadow = false;
-    this.torso = torso;
-    this.body.add(torso);
-
-    const belt = new THREE.Mesh(new THREE.CylinderGeometry(0.315, 0.315, 0.13, 12), mat(SKIN.hoodDark));
-    belt.position.y = 0.86;
-    this.body.add(belt);
-
-    // cabeça
-    this.head = new THREE.Group();
-    this.head.position.y = 1.62;
-    this.body.add(this.head);
-    const skull = new THREE.Mesh(new THREE.SphereGeometry(0.36, 16, 14), mat(SKIN.body));
-    this.head.add(skull);
-    this.face = new THREE.Group();
-    this.face.position.z = -0.3;
-    this.head.add(this.face);
-    const eyeWhiteMat = mat('#ffffff');
-    const pupilMat = mat('#20263a');
-    for (const sx of [-1, 1]) {
-      const eye = new THREE.Mesh(new THREE.SphereGeometry(0.105, 10, 8), eyeWhiteMat);
-      eye.position.set(sx * 0.135, 0.05, 0);
-      this.face.add(eye);
-      const pupil = new THREE.Mesh(new THREE.SphereGeometry(0.055, 8, 6), pupilMat);
-      pupil.position.set(sx * 0.145, 0.05, -0.06);
-      this.face.add(pupil);
-    }
-    const smile = new THREE.Mesh(new THREE.TorusGeometry(0.085, 0.022, 6, 10, Math.PI), pupilMat);
-    smile.position.set(0, -0.14, -0.02);
-    smile.rotation.z = Math.PI;
-    this.face.add(smile);
-
-    // capuz pontudo
-    const hood = new THREE.Mesh(new THREE.ConeGeometry(0.4, 0.62, 12), mat(SKIN.hoodDark));
-    hood.position.set(0, 0.28, 0.06);
-    hood.rotation.x = -0.16;
-    this.head.add(hood);
-    const hoodBall = new THREE.Mesh(new THREE.SphereGeometry(0.11, 10, 8), mat(SKIN.scarf));
-    hoodBall.position.set(0, 0.6, 0.12);
-    this.head.add(hoodBall);
-
-    // cachecol
-    const scarf = new THREE.Mesh(new THREE.TorusGeometry(0.3, 0.075, 6, 14), mat(SKIN.scarf));
-    scarf.position.y = 1.44;
-    scarf.rotation.x = Math.PI / 2;
-    this.body.add(scarf);
-    const scarfTail = new THREE.Mesh(new THREE.BoxGeometry(0.16, 0.5, 0.06), mat(SKIN.scarf));
-    scarfTail.position.set(0.1, 1.2, 0.28);
-    scarfTail.rotation.x = 0.3;
-    this.body.add(scarfTail);
-    this.scarfTail = scarfTail;
-
-    // braços
-    const armGeo = new THREE.CapsuleGeometry(0.085, 0.34, 4, 8);
-    this.armL = new THREE.Group();
-    this.armL.position.set(-0.35, 1.34, 0);
-    const armLMesh = new THREE.Mesh(armGeo, mat(SKIN.body));
-    armLMesh.position.y = -0.24;
-    this.armL.add(armLMesh);
-    this.body.add(this.armL);
-
-    this.armR = new THREE.Group();
-    this.armR.position.set(0.35, 1.34, 0);
-    const armRMesh = new THREE.Mesh(armGeo, mat(SKIN.body));
-    armRMesh.position.y = -0.24;
-    this.armR.add(armRMesh);
-    this.body.add(this.armR);
-
-    this.handSocket = new THREE.Object3D();
-    this.handSocket.position.set(0, -0.55, 0);
-    this.armR.add(this.handSocket);
-
-    // pernas
-    const legGeo = new THREE.CapsuleGeometry(0.11, 0.3, 4, 8);
-    this.legL = new THREE.Group();
-    this.legL.position.set(-0.16, 0.82, 0);
-    const legLMesh = new THREE.Mesh(legGeo, mat(SKIN.pants));
-    legLMesh.position.y = -0.26;
-    this.legL.add(legLMesh);
-    const bootL = new THREE.Mesh(new THREE.BoxGeometry(0.24, 0.16, 0.34), mat(SKIN.boot));
-    bootL.position.set(0, -0.5, -0.05);
-    this.legL.add(bootL);
-    this.body.add(this.legL);
-
-    this.legR = new THREE.Group();
-    this.legR.position.set(0.16, 0.82, 0);
-    const legRMesh = new THREE.Mesh(legGeo, mat(SKIN.pants));
-    legRMesh.position.y = -0.26;
-    this.legR.add(legRMesh);
-    const bootR = new THREE.Mesh(new THREE.BoxGeometry(0.24, 0.16, 0.34), mat(SKIN.boot));
-    bootR.position.set(0, -0.5, -0.05);
-    this.legR.add(bootR);
-    this.body.add(this.legR);
+    scene.add(this.group);
+    this._applyRig(buildAvatar(this.avatarConfig));
 
     // sombra de contato
     const shadow = new THREE.Mesh(
@@ -176,8 +74,32 @@ export class Player {
     shadow.position.y = 0.02;
     this.shadow = shadow;
     this.group.add(shadow);
+  }
 
-    scene.add(this.group);
+  /** Liga os membros do avatar ao rig de animação do jogador. */
+  _applyRig(rig) {
+    this.rig = rig;
+    this.body = rig.body;
+    this.torso = rig.torso;
+    this.head = rig.head;
+    this.face = rig.face;
+    this.armL = rig.armL;
+    this.armR = rig.armR;
+    this.legL = rig.legL;
+    this.legR = rig.legR;
+    this.handSocket = rig.handSocket;
+    this.scarfTail = null;
+    this.materials = rig.materials;
+    this.group.add(rig.group);
+  }
+
+  /** Troca o avatar em jogo (chamado pelo estúdio ao aplicar). */
+  setAvatar(config) {
+    this.avatarConfig = { ...this.avatarConfig, ...config };
+    disposeAvatar(this.rig);
+    this._applyRig(buildAvatar(this.avatarConfig));
+    this.onRigRebuilt?.();
+    this.events?.emit('player:avatar', { config: { ...this.avatarConfig } });
   }
 
   setColors() { /* reservado para cosméticos */ }
@@ -330,6 +252,7 @@ export class Player {
     }
 
     this._updateMaterials(dt);
+    this.rig?.update?.(dt, performance.now() / 1000);
     this.fsm.update(dt);
   }
 

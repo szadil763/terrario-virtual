@@ -20,6 +20,8 @@ import { Inventory, ITEMS } from './systems/loot.js';
 import { QuestManager, DialogueSystem } from './systems/npc.js';
 import { HUD } from './ui/hud.js';
 import { Menus } from './ui/menus.js';
+import { AvatarState } from './avatar/avatar-state.js';
+import { AvatarStudio } from './ui/avatar-studio.js';
 
 const SAVE_VERSION = 1;
 
@@ -88,6 +90,7 @@ class Game {
     this.effects = new Effects(this.scene, this.settings);
     this.cameraRig = new CameraRig(this.camera, this.settings);
     this.inventory = new Inventory();
+    this.avatar = new AvatarState();
     this.quests = new QuestManager(this.events);
     this.dialogue = new DialogueSystem(this.events, this.audio);
     this.combat = new Combat(this.scene, { effects: this.effects, audio: this.audio, settings: this.settings, events: this.events });
@@ -103,11 +106,14 @@ class Game {
   setupEntities() {
     this.player = new Player(this.scene, {
       settings: this.settings, events: this.events, effects: this.effects, audio: this.audio,
+      avatar: this.avatar.config,
     });
     this.lantern = new Lantern(this.scene, {
       player: this.player, settings: this.settings, events: this.events,
       effects: this.effects, audio: this.audio, combat: this.combat,
     });
+    // a lanterna acompanha a mão do avatar (inclusive ao trocar de personagem)
+    this.player.onRigRebuilt = () => { this.player.handSocket.add(this.lantern.group); };
     this.miniboss = new AncientGuardian(
       this.scene,
       new THREE.Vector3(-24, this.world.terrainHeight(-24, -22), -22),
@@ -134,6 +140,7 @@ class Game {
     this.hud = new HUD({ events: this.events, settings: this.settings, input: this.input, audio: this.audio });
     this.menus = new Menus({ events: this.events, settings: this.settings, input: this.input, audio: this.audio, save: this.save, hud: this.hud });
     this.menus.game = this;
+    this.avatarStudio = new AvatarStudio({ events: this.events, settings: this.settings, audio: this.audio, game: this });
     this.hud.applyTouchPreference();
 
     // máquina de estados do jogo
@@ -170,6 +177,19 @@ class Game {
     e.on('game:skin', ({ skin }) => { this.lantern.applySkin(skin); this.hud.toast('Nova aparência da lanterna!', '🎨'); });
     e.on('ui:pause-request', () => { if (this.fsm.is('playing')) this.fsm.set('paused'); });
     e.on('settings:change', () => this.applySettings());
+
+    // ---- troca de avatar
+    e.on('ui:avatar-request', () => {
+      if (!this.avatarStudio) return;
+      this.avatarReturnToPlaying = this.fsm.is('playing');
+      if (this.fsm.is('playing')) { this.fsm.set('paused'); this.menus.hideAll(); }
+      this.avatarStudio.show();
+    });
+    e.on('avatar:closed', () => {
+      if (this.avatarReturnToPlaying && this.fsm.is('paused')) this.fsm.set('playing');
+      else if (this.fsm.is('paused') && !this.menus.current) this.menus.open('pause');
+      this.avatarReturnToPlaying = false;
+    });
 
     e.on('npc:talk', ({ id }) => {
       const npc = this.world.npcs.find((n) => n.id === id);
@@ -283,7 +303,9 @@ class Game {
         this.input.consume('interact', 'jump', 'pause');
       }
     } else if (this.fsm.is('paused')) {
-      if (this.input.justPressed('pause')) {
+      if (this.avatarStudio?.open) {
+        if (this.input.justPressed('pause')) { this.avatarStudio.close(); this.input.consume('pause'); }
+      } else if (this.input.justPressed('pause')) {
         if (this.menus.current && this.menus.current !== 'pause') this.menus.back();
         else this.fsm.set('playing');
         this.input.consume('pause');
@@ -431,6 +453,14 @@ class Game {
     }
   }
 
+  /** Aplica o visual escolhido no estúdio (jogador + save). */
+  applyAvatar(config = {}) {
+    this.avatar.apply(config);
+    this.player.setAvatar(this.avatar.config);
+    this.autosave(true);
+    this.events.emit('avatar:applied', { config: { ...this.avatar.config } });
+  }
+
   buyUpgrade(id) {
     const cost = this.lantern.nextUpgradeCost(id);
     if (cost === null) { this.hud.toast('Essa melhoria já está no máximo.', '🔷'); return; }
@@ -449,6 +479,7 @@ class Game {
     this.lantern.load({ unlockedModes: [], unlockedTricks: ['giro', 'orbita'] });
     this.miniboss.load({ hp: this.miniboss.maxHp, defeated: false });
     this.world.load({ flags: {}, interactions: [], gates: [], respawn: [0, this.world.terrainHeight(0, 7), 7] });
+    this.player.setAvatar(this.avatar.reset());
     this.player.maxHealth = 100;
     this.player.health = 100;
     this.player.maxEnergy = 100;
@@ -589,6 +620,7 @@ class Game {
         energy: this.player.energy, maxEnergy: this.player.maxEnergy,
       },
       lantern: this.lantern.serialize(),
+      avatar: this.avatar.serialize(),
       inventory: this.inventory.serialize(),
       quests: this.quests.serialize(),
       world: this.world.serialize(),
@@ -615,6 +647,8 @@ class Game {
         this.player.health = clamp(data.player.health ?? this.player.maxHealth, 1, this.player.maxHealth);
         this.player.energy = clamp(data.player.energy ?? this.player.maxEnergy, 0, this.player.maxEnergy);
       }
+      this.avatar.load(data.avatar || {});
+      this.player.setAvatar(this.avatar.config);
       this.inventory.load(data.inventory || []);
       this.quests.load(data.quests || {});
       this.lantern.load(data.lantern || {});

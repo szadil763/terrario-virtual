@@ -39,7 +39,28 @@ src/world/effects.js      partículas, brilhos, anéis, feixes (shader próprio,
 src/world/biome.js        terreno, colisão, Floresta Encantada e registro dos biomas futuros
 src/ui/hud.js             barras, habilidades, minimapa, avisos, controles de toque
 src/ui/menus.js           título, pausa, opções, melhorias, mochila, missões, mapa, diálogo, morte
+src/avatar/catalog.js     personagens, roupas, cabelos, chapéus, rosto, costas, auras, raridades
+src/avatar/builder.js     geometria procedural dos avatares (rig compatível com o Player)
+src/avatar/avatar-state.js visual escolhido + itens desbloqueados (vai no save)
+src/ui/avatar-studio.js   estúdio "Trocar avatar": prévia 3D, abas, raridades, desbloqueio
 ```
+
+## Sistema de avatares
+
+- **Rig:** `buildAvatar(config)` devolve `{ group, body, torso, head, face, armL/R, legL/R,
+  handSocket, materials, update }`. O `Player._applyRig` liga esses membros às animações
+  procedurais existentes — qualquer avatar novo precisa expor os mesmos nomes. `setAvatar()`
+  reconstrói o visual e `player.onRigRebuilt` reanexa a lanterna ao novo `handSocket`.
+- **Estúdio:** abre por `ui:avatar-request` (botão do HUD e menu de pausa), usa um segundo
+  `WebGLRenderer` no canvas `#studio-canvas` e só altera o jogo ao tocar em **Aplicar visual**
+  (`game.applyAvatar`). Fechar com Esc volta ao jogo ou à pausa, conforme a origem
+  (`avatarReturnToPlaying`).
+- **Desbloqueio:** custo por raridade (`COSTS` no catálogo); compra com moedas 🪙 pela própria
+  carta bloqueada. `AvatarState` guarda o config e o conjunto `slot:id` desbloqueado no save
+  (`avatar`), e o visual aplicado também entra no autosave.
+- **Itens novos:** adicione no catálogo (slot + `style`) e implemente o `case` correspondente em
+  `builder.js` (`buildHair`, `buildHeadItem`, `buildFaceItem`, `buildBackItem`, `buildOutfit`,
+  `buildAura`). Slots são exclusivos entre si (um chapéu, um cabelo, uma roupa etc.).
 
 ## Detalhes não óbvios
 

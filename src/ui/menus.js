@@ -49,6 +49,8 @@ export class Menus {
     });
 
     $('btn-resume')?.addEventListener('click', () => { this.audio?.sfx('ui'); this.events.emit('game:resume', {}); });
+    $('btn-avatar')?.addEventListener('click', () => { this.audio?.sfx('ui'); this.events.emit('ui:avatar-request', {}); });
+    $('btn-avatar-pause')?.addEventListener('click', () => { this.audio?.sfx('ui'); this.events.emit('ui:avatar-request', {}); });
     $('btn-upgrades')?.addEventListener('click', () => { this.audio?.sfx('ui'); this.open('upgrades'); });
     $('btn-inventory')?.addEventListener('click', () => { this.audio?.sfx('ui'); this.open('inventory'); });
     $('btn-quests')?.addEventListener('click', () => { this.audio?.sfx('ui'); this.open('quests'); });
