@@ -22,7 +22,7 @@ export class HUD {
       minimap: $('minimap'), compass: $('compass'), quest: $('quest-tracker'), questText: $('quest-text'),
       prompt: $('prompt'), promptKey: $('prompt-key'), promptText: $('prompt-text'),
       bossbar: $('bossbar'), bossName: $('boss-name'), bossFill: $('boss-fill'),
-      toasts: $('toasts'), hint: $('hint'), safe: $('safe-badge'), vignette: $('vignette'),
+      toasts: $('toasts'), hint: $('hint'), safe: $('safe-badge'), vignette: $('vignette'), worldStatus: $('world-status'),
       touch: $('touch'), joy: $('joy'), joyKnob: $('joy-knob'), gear: $('gear'), lookzone: $('lookzone'),
     };
     this.mm = this.el.minimap.getContext('2d');
@@ -39,6 +39,9 @@ export class HUD {
     });
     this.events.on('prompt:hide', () => this.el.prompt.classList.add('hidden'));
     this.events.on('ui:toast', ({ text, icon }) => this.toast(text, icon));
+    this.events.on('world:status', ({ text }) => {
+      if (this.el.worldStatus) this.el.worldStatus.textContent = text;
+    });
   }
 
   bindTouch() {

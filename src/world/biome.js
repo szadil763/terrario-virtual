@@ -227,6 +227,8 @@ export class World {
   build(biomeId = 'floresta') {
     if (biomeId !== 'floresta') return false;
     const fx = this.deps.effects;
+    this.biomeId = biomeId;
+    this.windables = [];
 
     // ---- terreno
     const geo = new THREE.PlaneGeometry(130, 130, 90, 90);
@@ -273,7 +275,9 @@ export class World {
       treeSpots.push({ x, z, s });
     }
     this._instanced(new THREE.CylinderGeometry(0.34, 0.46, 3.4, 6), this._mat('#4a3b2c'), trunkTransforms);
-    this._instanced(new THREE.ConeGeometry(1.5, 3.2, 7), this._mat('#1f4a35'), canopyTransforms);
+    const canopyMat = this._mat('#1f4a35');
+    this._instanced(new THREE.ConeGeometry(1.5, 3.2, 7), canopyMat, canopyTransforms);
+    this.windables.push({ material: canopyMat, amp: 0.85 });
     // folhagens brilhantes espalhadas
     const bushT = [];
     for (let i = 0; i < 90; i++) {
@@ -282,7 +286,22 @@ export class World {
       if (Math.hypot(x, z) < 8) continue;
       bushT.push({ x, y: this.terrainHeight(x, z) + 0.25, z, s: 0.5 + this.rng() * 0.7, ry: this.rng() * 3 });
     }
-    this._instanced(new THREE.IcosahedronGeometry(0.7, 0), this._mat('#26543c'), bushT);
+    const bushMat = this._mat('#26543c');
+    this._instanced(new THREE.IcosahedronGeometry(0.7, 0), bushMat, bushT);
+    this.windables.push({ material: bushMat, amp: 0.55 });
+
+    // ---- grama que reage ao vento e ao caminhar
+    const grassT = [];
+    for (let i = 0; i < 520; i++) {
+      const a = this.rng() * Math.PI * 2, r = 6 + this.rng() * 46;
+      const x = Math.cos(a) * r, z = Math.sin(a) * r;
+      if (Math.hypot(x, z) < 6) continue;
+      grassT.push({ x, y: this.terrainHeight(x, z) + 0.3, z, s: 0.7 + this.rng() * 0.9, ry: this.rng() * 3 });
+    }
+    const grassMat = this._mat('#2f6b43', { side: THREE.DoubleSide });
+    this._instanced(new THREE.ConeGeometry(0.09, 0.75, 3), grassMat, grassT);
+    this.windables.push({ material: grassMat, amp: 0.5 });
+
     // pedras
     const rockT = [];
     for (let i = 0; i < 55; i++) {
@@ -322,7 +341,37 @@ export class World {
     this.fireflies = this._buildFireflies();
 
     // ---- lago
-    const pond = new THREE.Mesh(new THREE.CircleGeometry(7, 32), new THREE.MeshLambertMaterial({ color: new THREE.Color('#1d5a70'), transparent: true, opacity: 0.85 }));
+    const waterMat = new THREE.ShaderMaterial({
+      uniforms: {
+        uDeep: { value: new THREE.Color('#123c52') },
+        uSky: { value: new THREE.Color('#8fc3e6') },
+        uSun: { value: new THREE.Color('#ffe6a8') },
+        uTime: { value: 0 },
+      },
+      vertexShader: `
+        varying vec3 vWorld;
+        void main() {
+          vWorld = (modelMatrix * vec4(position, 1.0)).xyz;
+          gl_Position = projectionMatrix * viewMatrix * vec4(vWorld, 1.0);
+        }`,
+      fragmentShader: `
+        uniform vec3 uDeep;
+        uniform vec3 uSky;
+        uniform vec3 uSun;
+        uniform float uTime;
+        varying vec3 vWorld;
+        void main() {
+          // ondas suaves + reflexo do céu em ângulo rasante
+          float ripple = sin(vWorld.x * 1.7 + uTime * 1.1) * 0.5 + sin(vWorld.z * 2.3 - uTime * 0.8) * 0.5;
+          vec3 col = mix(uDeep, uSky, 0.34 + ripple * 0.16);
+          float glint = pow(max(0.0, sin(vWorld.x * 3.1 + uTime * 2.0) * sin(vWorld.z * 2.7 - uTime * 1.7)), 20.0);
+          col += uSun * glint * 0.5;
+          gl_FragColor = vec4(col, 0.92);
+        }`,
+      transparent: true,
+      side: THREE.DoubleSide,
+    });
+    const pond = new THREE.Mesh(new THREE.CircleGeometry(7, 32), waterMat);
     pond.rotation.x = -Math.PI / 2;
     pond.position.set(-16, this.terrainHeight(-16, 9) + 0.35, 9);
     this.scene.add(pond);

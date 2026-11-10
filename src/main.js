@@ -11,6 +11,7 @@ import { AudioManager } from './core/audio.js';
 import { CameraRig } from './core/camera.js';
 import { Effects } from './world/effects.js';
 import { World } from './world/biome.js';
+import { Atmosphere } from './world/atmosphere.js';
 import { Player } from './player/player.js';
 import { Lantern } from './player/lantern.js';
 import { Combat } from './systems/combat.js';
@@ -101,6 +102,9 @@ class Game {
       effects: this.effects, audio: this.audio, events: this.events, settings: this.settings,
     });
     this.world.build('floresta');
+    this.atmosphere = new Atmosphere(this.scene, {
+      world: this.world, settings: this.settings, events: this.events, effects: this.effects,
+    }).build();
   }
 
   setupEntities() {
@@ -276,6 +280,8 @@ class Game {
     const slow = this.combat?.hitStop > 0 ? 0.35 : 1;
     const d = dt * slow;
     this.audio?.update(dt);
+    // céu, clima e vento continuam vivos em qualquer tela
+    this.atmosphere?.update(this.fsm.is('playing') ? dt : dt * 0.5, this.player?.position);
 
     if (this.fsm.is('title') || this.fsm.is('loading')) {
       this.world?.update(dt, this.makeCtx());
