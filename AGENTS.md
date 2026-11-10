@@ -36,6 +36,9 @@ src/systems/interactables.js  baús, caixotes, alavancas, portas, cristais, flor
                               inscrições, ponto de descanso, gancho, coletáveis
 src/systems/npc.js        diálogos com escolhas, missões (QuestManager) e reações às manobras
 src/world/effects.js      partículas, brilhos, anéis, feixes (shader próprio, sem texturas externas)
+src/world/graphics.js     materiais procedurais (terreno com detalhe, grama, flores), água/espuma,
+                          cachoeira, cordilheiras + castelo + ilhas flutuantes do horizonte
+src/world/postfx.js       pipeline cinematográfico: HDR, bloom, god rays, ACES, grading, vinheta
 src/world/biome.js        terreno, colisão, Floresta Encantada e registro dos biomas futuros
 src/ui/hud.js             barras, habilidades, minimapa, avisos, controles de toque
 src/ui/menus.js           título, pausa, opções, melhorias, mochila, missões, mapa, diálogo, morte
@@ -61,6 +64,24 @@ src/ui/avatar-studio.js   estúdio "Trocar avatar": prévia 3D, abas, raridades,
 - **Itens novos:** adicione no catálogo (slot + `style`) e implemente o `case` correspondente em
   `builder.js` (`buildHair`, `buildHeadItem`, `buildFaceItem`, `buildBackItem`, `buildOutfit`,
   `buildAura`). Slots são exclusivos entre si (um chapéu, um cabelo, uma roupa etc.).
+
+## Render e iluminação
+
+- **Um único ponto de desenho:** `Game.renderFrame(dt)` → `PostFX.render`. A cena vai para um
+  render target linear (sem tone mapping); o passe final faz ACES, bloom, raios do sol, color
+  grading e vinheta. Não chame `renderer.render(scene, camera)` direto no loop (o `AvatarStudio`
+  tem o próprio renderer e continua igual).
+- **Quem manda na luz:** `atmosphere.js` é a única fonte de intensidade de `hemi`/`sun`/`moon`
+  (ciclo dia/noite × opção de brilho). `World.update` **não** deve reescrever essas intensidades —
+  fazer isso congela o dia em iluminação de noite.
+- **Sombras** são do sol (`castShadow`), com câmera ortográfica de ±46 acompanhando o jogador.
+  `Game.applyShadowFlags()` roda a cada 2,5 s e liga sombra em meshes novos (inimigos, projéteis);
+  objetos com `userData.noShadow = true` ficam de fora (céu, água, grama, cenário distante).
+- **Vento:** `graphics.grassWind` (grama) e `atmosphere.wind` (copas/arbustos) são atualizados no
+  loop; materiais novos de vegetação precisam entrar em `world.windables` ou usar `grassWind`.
+- **Qualidade:** `PostFX` escolhe 'low' em GPUs de software, telas < 620 px ou ≤ 4 núcleos
+  (sem MSAA e com um passe de bloom). O preview da Base44 roda em SwiftShader: FPS ali não
+  representa o hardware real.
 
 ## Detalhes não óbvios
 

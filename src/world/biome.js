@@ -11,6 +11,10 @@ import {
 } from '../systems/interactables.js';
 import { ITEMS } from '../systems/loot.js';
 import { NPC, NPC_DEFS } from '../systems/npc.js';
+import {
+  makeTerrainMaterial, buildGrassField, buildFlowerField, makeWaterMaterial,
+  buildWaterfall, buildDistantLandscape,
+} from './graphics.js';
 
 export const BIOME_LIST = [
   { id: 'floresta', name: 'Floresta Encantada', icon: '🌲', color: '#7cf0a8', locked: false, desc: 'Árvores enormes, flores luminosas e ruínas cobertas de vegetação.' },
@@ -61,7 +65,7 @@ export class World {
     const flat = clamp((dCamp - 7) / 9, 0, 1);
     h *= lerp(0.12, 1, flat);
     const dPond = Math.hypot(x + 16, z - 9);
-    if (dPond < 7) h -= (1 - dPond / 7) * 1.8;
+    if (dPond < 7) h -= (1 - dPond / 7) * 2.6;
     return h;
   }
 
@@ -127,7 +131,11 @@ export class World {
   setRespawn(position) { this.respawn.copy(position); }
 
   // ------------------------------------------------------------- helpers
-  _mat(color, opts = {}) { return new THREE.MeshLambertMaterial({ color: new THREE.Color(color), flatShading: true, ...opts }); }
+  _mat(color, opts = {}) {
+    return new THREE.MeshStandardMaterial({
+      color: new THREE.Color(color), roughness: 0.82, metalness: 0.04, flatShading: true, ...opts,
+    });
+  }
 
   _box(x, y, z, sx, sy, sz, color, opts = {}) {
     const mesh = new THREE.Mesh(new THREE.BoxGeometry(sx, sy, sz), this._mat(color, opts));
@@ -162,6 +170,7 @@ export class World {
       mesh.setMatrixAt(i, m);
     });
     mesh.instanceMatrix.needsUpdate = true;
+    mesh.frustumCulled = false;
     this.scene.add(mesh);
     return mesh;
   }
@@ -230,8 +239,8 @@ export class World {
     this.biomeId = biomeId;
     this.windables = [];
 
-    // ---- terreno
-    const geo = new THREE.PlaneGeometry(130, 130, 90, 90);
+    // ---- terreno (smooth shading + detalhe procedural no shader)
+    const geo = new THREE.PlaneGeometry(160, 160, 144, 144);
     geo.rotateX(-Math.PI / 2);
     const pos = geo.attributes.position;
     const colors = [];
@@ -241,21 +250,29 @@ export class World {
       const h = this.terrainHeight(x, z);
       pos.setY(i, h);
       const moss = clamp((Math.sin(x * 0.3) * Math.cos(z * 0.28) + 1) / 2, 0, 1);
-      c.setHSL(0.34 - moss * 0.03, 0.32, 0.16 + moss * 0.07);
+      const damp = clamp(1 - Math.hypot(x + 16, z - 9) / 9, 0, 1);
+      const meadow = clamp(1 - Math.hypot(x - 18, z - 2) / 14, 0, 1);
+      c.setHSL(
+        0.325 + moss * 0.05 - damp * 0.05 + meadow * 0.02,
+        0.38 + moss * 0.10 - damp * 0.14,
+        0.145 + moss * 0.075 + damp * 0.05 + meadow * 0.03,
+      );
       colors.push(c.r, c.g, c.b);
     }
     geo.setAttribute('color', new THREE.Float32BufferAttribute(colors, 3));
     geo.computeVertexNormals();
-    const ground = new THREE.Mesh(geo, new THREE.MeshLambertMaterial({ vertexColors: true, flatShading: true }));
+    const ground = new THREE.Mesh(geo, makeTerrainMaterial());
     ground.name = 'ground';
+    ground.receiveShadow = true;
     this.scene.add(ground);
     this.ground = ground;
 
     // ---- árvores (instanciadas)
     const trunkTransforms = [];
-    const canopyTransforms = [];
+    const canopyDark = [];
+    const canopyLight = [];
     const treeSpots = [];
-    for (let i = 0; i < 140; i++) {
+    for (let i = 0; i < 170; i++) {
       const a = this.rng() * Math.PI * 2;
       const r = 12 + this.rng() * 38;
       const x = Math.cos(a) * r, z = Math.sin(a) * r;
@@ -269,47 +286,63 @@ export class World {
       if (Math.hypot(x - 10, z + 16) < 6) continue;          // ravina das raízes
       const s = 0.8 + this.rng() * 0.9;
       const h = this.terrainHeight(x, z);
-      trunkTransforms.push({ x, y: h + 1.6 * s, z, s: 0.5 * s, sy: 3.2 * s, ry: this.rng() * 3 });
-      canopyTransforms.push({ x, y: h + 3.4 * s + 0.6, z, s: 1.9 * s, sy: 2.2 * s, ry: this.rng() * 3 });
-      canopyTransforms.push({ x: x + 0.2, y: h + 4.6 * s, z: z - 0.2, s: 1.3 * s, sy: 1.5 * s, ry: this.rng() * 3 });
+      const ry = this.rng() * 3;
+      trunkTransforms.push({ x, y: h + 1.7 * s, z, s: 0.52 * s, sy: 3.4 * s, ry });
+      canopyDark.push({ x, y: h + 3.5 * s, z, s: 2.05 * s, sy: 1.95 * s, ry });
+      canopyDark.push({ x: x + 0.7 * s, y: h + 2.9 * s, z: z + 0.5 * s, s: 1.35 * s, sy: 1.25 * s, ry: ry + 1 });
+      canopyLight.push({ x: x - 0.35 * s, y: h + 4.55 * s, z: z - 0.3 * s, s: 1.55 * s, sy: 1.45 * s, ry: ry + 2 });
+      canopyLight.push({ x: x + 0.95 * s, y: h + 4.1 * s, z: z - 0.85 * s, s: 1.05 * s, sy: 1.0 * s, ry });
       treeSpots.push({ x, z, s });
     }
-    this._instanced(new THREE.CylinderGeometry(0.34, 0.46, 3.4, 6), this._mat('#4a3b2c'), trunkTransforms);
-    const canopyMat = this._mat('#1f4a35');
-    this._instanced(new THREE.ConeGeometry(1.5, 3.2, 7), canopyMat, canopyTransforms);
-    this.windables.push({ material: canopyMat, amp: 0.85 });
-    // folhagens brilhantes espalhadas
-    const bushT = [];
-    for (let i = 0; i < 90; i++) {
-      const a = this.rng() * Math.PI * 2, r = 8 + this.rng() * 42;
-      const x = Math.cos(a) * r, z = Math.sin(a) * r;
-      if (Math.hypot(x, z) < 8) continue;
-      bushT.push({ x, y: this.terrainHeight(x, z) + 0.25, z, s: 0.5 + this.rng() * 0.7, ry: this.rng() * 3 });
-    }
-    const bushMat = this._mat('#26543c');
-    this._instanced(new THREE.IcosahedronGeometry(0.7, 0), bushMat, bushT);
-    this.windables.push({ material: bushMat, amp: 0.55 });
+    const trunkMesh = this._instanced(new THREE.CylinderGeometry(0.3, 0.58, 3.6, 7), this._mat('#4a3a2b', { flatShading: false }), trunkTransforms);
+    trunkMesh.castShadow = true;
+    trunkMesh.receiveShadow = true;
 
-    // ---- grama que reage ao vento e ao caminhar
-    const grassT = [];
-    for (let i = 0; i < 520; i++) {
-      const a = this.rng() * Math.PI * 2, r = 6 + this.rng() * 46;
-      const x = Math.cos(a) * r, z = Math.sin(a) * r;
-      if (Math.hypot(x, z) < 6) continue;
-      grassT.push({ x, y: this.terrainHeight(x, z) + 0.3, z, s: 0.7 + this.rng() * 0.9, ry: this.rng() * 3 });
+    // copas em tufos arredondados (dois tons) — silhueta orgânica, estilo anime 3D
+    const canopyDarkMat = this._mat('#2a6346', { flatShading: false, roughness: 0.88 });
+    const canopyLightMat = this._mat('#3f8a58', { flatShading: false, roughness: 0.88 });
+    const canopyMeshA = this._instanced(new THREE.IcosahedronGeometry(1, 1), canopyDarkMat, canopyDark);
+    const canopyMeshB = this._instanced(new THREE.IcosahedronGeometry(1, 1), canopyLightMat, canopyLight);
+    for (const m of [canopyMeshA, canopyMeshB]) {
+      m.castShadow = true;
+      m.receiveShadow = true;
     }
-    const grassMat = this._mat('#2f6b43', { side: THREE.DoubleSide });
-    this._instanced(new THREE.ConeGeometry(0.09, 0.75, 3), grassMat, grassT);
-    this.windables.push({ material: grassMat, amp: 0.5 });
+    this.windables.push({ material: canopyDarkMat, amp: 0.55 });
+    this.windables.push({ material: canopyLightMat, amp: 0.7 });
+
+    // folhagens e arbustos
+    const bushT = [];
+    for (let i = 0; i < 150; i++) {
+      const a = this.rng() * Math.PI * 2, r = 8 + this.rng() * 44;
+      const x = Math.cos(a) * r, z = Math.sin(a) * r;
+      if (Math.hypot(x, z) < 7) continue;
+      bushT.push({ x, y: this.terrainHeight(x, z) + 0.3, z, s: 0.55 + this.rng() * 0.85, sy: 0.6 + this.rng() * 0.5, ry: this.rng() * 3 });
+    }
+    const bushMat = this._mat('#265e3f');
+    const bushMesh = this._instanced(new THREE.IcosahedronGeometry(0.75, 1), bushMat, bushT);
+    bushMesh.castShadow = true;
+    bushMesh.receiveShadow = true;
+    this.windables.push({ material: bushMat, amp: 0.5 });
+
+    // ---- grama 3D em lâminas (instanciada, balança com o vento)
+    this.grass = buildGrassField(this.scene, this, this.rng, { count: 4200 });
+    // flores e trevos coloridos
+    this.flowers = buildFlowerField(this.scene, this, this.rng, { count: 560 });
 
     // pedras
     const rockT = [];
-    for (let i = 0; i < 55; i++) {
-      const a = this.rng() * Math.PI * 2, r = 10 + this.rng() * 42;
+    for (let i = 0; i < 70; i++) {
+      const a = this.rng() * Math.PI * 2, r = 10 + this.rng() * 44;
       const x = Math.cos(a) * r, z = Math.sin(a) * r;
-      rockT.push({ x, y: this.terrainHeight(x, z) + 0.2, z, s: 0.4 + this.rng() * 0.9, ry: this.rng() * 3 });
+      rockT.push({ x, y: this.terrainHeight(x, z) + 0.2, z, s: 0.4 + this.rng() * 1.1, ry: this.rng() * 3 });
     }
-    this._instanced(new THREE.DodecahedronGeometry(0.8, 0), this._mat('#545a6b'), rockT);
+    const rockMesh = this._instanced(
+      new THREE.DodecahedronGeometry(0.8, 0),
+      new THREE.MeshStandardMaterial({ color: new THREE.Color('#5b6270'), roughness: 0.95, metalness: 0.02, flatShading: true }),
+      rockT,
+    );
+    rockMesh.castShadow = true;
+    rockMesh.receiveShadow = true;
 
     // ---- cogumelos e flores decorativas com brilho
     const mushroomT = [];
@@ -340,43 +373,45 @@ export class World {
     // ---- vaga-lumes ambiente
     this.fireflies = this._buildFireflies();
 
-    // ---- lago
-    const waterMat = new THREE.ShaderMaterial({
-      uniforms: {
-        uDeep: { value: new THREE.Color('#123c52') },
-        uSky: { value: new THREE.Color('#8fc3e6') },
-        uSun: { value: new THREE.Color('#ffe6a8') },
-        uTime: { value: 0 },
-      },
-      vertexShader: `
-        varying vec3 vWorld;
-        void main() {
-          vWorld = (modelMatrix * vec4(position, 1.0)).xyz;
-          gl_Position = projectionMatrix * viewMatrix * vec4(vWorld, 1.0);
-        }`,
-      fragmentShader: `
-        uniform vec3 uDeep;
-        uniform vec3 uSky;
-        uniform vec3 uSun;
-        uniform float uTime;
-        varying vec3 vWorld;
-        void main() {
-          // ondas suaves + reflexo do céu em ângulo rasante
-          float ripple = sin(vWorld.x * 1.7 + uTime * 1.1) * 0.5 + sin(vWorld.z * 2.3 - uTime * 0.8) * 0.5;
-          vec3 col = mix(uDeep, uSky, 0.34 + ripple * 0.16);
-          float glint = pow(max(0.0, sin(vWorld.x * 3.1 + uTime * 2.0) * sin(vWorld.z * 2.7 - uTime * 1.7)), 20.0);
-          col += uSun * glint * 0.5;
-          gl_FragColor = vec4(col, 0.92);
-        }`,
-      transparent: true,
-      side: THREE.DoubleSide,
-    });
-    const pond = new THREE.Mesh(new THREE.CircleGeometry(7, 32), waterMat);
+    // ---- lago cristalino (fresnel, espuma e reflexo do céu)
+    const waterMat = makeWaterMaterial({ center: new THREE.Vector2(-16, 9), radius: 4.3 });
+    const pond = new THREE.Mesh(new THREE.CircleGeometry(6.6, 56), waterMat);
     pond.rotation.x = -Math.PI / 2;
-    pond.position.set(-16, this.terrainHeight(-16, 9) + 0.35, 9);
+    const pondY = this.terrainHeight(-16, 9) + 1.05;
+    pond.position.set(-16, pondY, 9);
+    pond.receiveShadow = true;
+    pond.userData.noShadow = true;
     this.scene.add(pond);
     this.pond = pond;
     this.anim.push({ kind: 'pond', mesh: pond });
+
+    // cachoeira entre as rochas do lago
+    const wfX = -16, wfZ = 15.0;
+    const wfBase = pondY - 0.1;
+    this.waterfall = buildWaterfall(this.scene, fx, {
+      x: wfX, y: wfBase, z: wfZ, width: 3.1, height: 6.2, facing: Math.PI,
+    });
+    for (const [ox, oz, s] of [[-2.8, 0.2, 1.6], [2.7, 0.1, 1.8], [0.2, 1.1, 1.2]]) {
+      const rock = new THREE.Mesh(
+        new THREE.DodecahedronGeometry(s, 0),
+        new THREE.MeshStandardMaterial({ color: new THREE.Color('#4c5560'), roughness: 0.95, flatShading: true }),
+      );
+      rock.position.set(wfX + ox, this.terrainHeight(wfX + ox, wfZ + oz) + s * 0.75, wfZ + oz);
+      rock.castShadow = true;
+      rock.receiveShadow = true;
+      this.scene.add(rock);
+    }
+    // vitórias-régias flutuando
+    for (let i = 0; i < 8; i++) {
+      const a = rand(0, Math.PI * 2), r = rand(1.6, 5.4);
+      const pad = new THREE.Mesh(
+        new THREE.CircleGeometry(rand(0.32, 0.58), 9),
+        this._mat('#3f7f45', { side: THREE.DoubleSide, flatShading: false }),
+      );
+      pad.rotation.x = -Math.PI / 2;
+      pad.position.set(-16 + Math.cos(a) * r, pondY + 0.04, 9 + Math.sin(a) * r);
+      this.scene.add(pad);
+    }
     for (let i = 0; i < 8; i++) {
       const a = rand(0, Math.PI * 2);
       this.addGlowPoint(new THREE.Vector3(-16 + Math.cos(a) * rand(2, 6.4), pond.position.y + 0.1, 9 + Math.sin(a) * rand(2, 6.4)), '#7cf0d8', rand(1.2, 2.2));
@@ -418,11 +453,14 @@ export class World {
     // ---- inimigos
     this._buildEnemies();
 
+    // ---- cenário distante: cordilheiras, castelo, ilhas flutuantes
+    this.distant = buildDistantLandscape(this.scene, { terrainHeight: (x, z) => this.terrainHeight(x, z) });
+
     // ---- névoa e ambiente luminoso
-    // ambiente mais luminoso e acolhedor (estilo Nintendo: o escuro convida, não esconde)
-    this.scene.fog = new THREE.FogExp2(new THREE.Color('#0d1530'), 0.016);
+    // perspectiva atmosférica leve: as serras do horizonte aparecem em camadas
+    this.scene.fog = new THREE.FogExp2(new THREE.Color('#8fb4c9'), 0.0072);
     this.scene.background = new THREE.Color('#0a1126');
-    const hemi = new THREE.HemisphereLight(new THREE.Color('#3c5a94'), new THREE.Color('#101a30'), 0.85);
+    const hemi = new THREE.HemisphereLight(new THREE.Color('#8fb6dd'), new THREE.Color('#22301f'), 1.0);
     this.scene.add(hemi);
     const moon = new THREE.DirectionalLight(new THREE.Color('#9db8f0'), 0.36);
     moon.position.set(-30, 40, -20);
@@ -1000,7 +1038,8 @@ export class World {
       this.fireLight.intensity = 3.2 * f;
     }
     // água
-    if (this.pond) this.pond.position.y = this.terrainHeight(-16, 9) + 0.35 + Math.sin(t * 0.8) * 0.04;
+    if (this.pond) this.pond.position.y = this.terrainHeight(-16, 9) + 1.05 + Math.sin(t * 0.8) * 0.03;
+    this.distant?.update(t);
     // vaga-lumes
     if (this.fireflies) {
       const pos = this.fireflies.geo.attributes.position;
@@ -1041,12 +1080,8 @@ export class World {
     if (this.plantGlow) this.plantGlow.material.opacity = 0.35 + this.deps.settings.get('fx') * 0.5;
     // recarga dos cristais refletores
     for (const c of this.crystals) c.cooldown = Math.max(0, c.cooldown - dt);
-    // luz conforme brilho escolhido
-    if (this.lights) {
-      const b = clamp(this.deps.settings.get('brightness'), 0.6, 1.6);
-      this.lights.hemi.intensity = 0.85 * b;
-      this.lights.moon.intensity = 0.36 * b;
-    }
+    // (a intensidade da luz é do ciclo dia/noite em atmosphere.js, que também
+    // já aplica o brilho escolhido nas opções)
   }
 
   /** Visão geral para o mapa completo. */

@@ -12,6 +12,7 @@ import { CameraRig } from './core/camera.js';
 import { Effects } from './world/effects.js';
 import { World } from './world/biome.js';
 import { Atmosphere } from './world/atmosphere.js';
+import { PostFX } from './world/postfx.js';
 import { Player } from './player/player.js';
 import { Lantern } from './player/lantern.js';
 import { Combat } from './systems/combat.js';
@@ -72,16 +73,25 @@ class Game {
   }
 
   setupRenderer() {
-    this.renderer = new THREE.WebGLRenderer({ canvas: this.canvas, antialias: true, powerPreference: 'high-performance' });
-    this.renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+    this.renderer = new THREE.WebGLRenderer({ canvas: this.canvas, antialias: false, powerPreference: 'high-performance' });
+    this.renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 1.8));
     this.renderer.setSize(window.innerWidth, window.innerHeight);
     this.renderer.outputColorSpace = THREE.SRGBColorSpace;
     this.renderer.toneMapping = THREE.ACESFilmicToneMapping;
     this.renderer.toneMappingExposure = 1.1;
+    this.renderer.shadowMap.enabled = true;
+    this.renderer.shadowMap.type = THREE.PCFSoftShadowMap;
     this.scene = new THREE.Scene();
-    this.camera = new THREE.PerspectiveCamera(58, window.innerWidth / window.innerHeight, 0.1, 300);
+    this.camera = new THREE.PerspectiveCamera(58, window.innerWidth / window.innerHeight, 0.1, 420);
     this.camera.position.set(0, 6, 12);
     this.scene.add(this.camera);
+
+    const gl = this.renderer.getContext();
+    const dbg = gl.getExtension('WEBGL_debug_renderer_info');
+    const gpuName = dbg ? String(gl.getParameter(dbg.UNMASKED_RENDERER_WEBGL)) : '';
+    const software = /swiftshader|llvmpipe|software|basic render/i.test(gpuName);
+    const lowPower = software || window.innerWidth < 620 || (navigator.hardwareConcurrency || 8) <= 4;
+    this.postfx = new PostFX(this.renderer, this.scene, this.camera, { quality: lowPower ? 'low' : 'high' });
     window.addEventListener('resize', () => this.onResize());
   }
 
@@ -160,7 +170,9 @@ class Game {
   }
 
   applySettings() {
-    this.renderer.toneMappingExposure = 1.08 * clamp(this.settings.get('brightness'), 0.6, 1.6);
+    const brightness = clamp(this.settings.get('brightness'), 0.6, 1.6);
+    this.renderer.toneMappingExposure = 1.08 * brightness;
+    if (this.postfx) this.postfx.setLook({ exposure: 1.14 * brightness });
     document.documentElement.style.setProperty('--ui', String(this.settings.get('textScale')));
     this.hud.applyTouchPreference();
   }
@@ -288,7 +300,7 @@ class Game {
       this.effects?.update(dt);
       this.cameraRig && this.spinCameraAtTitle(dt);
       this.input?.endFrame();
-      this.renderer.render(this.scene, this.camera);
+      this.renderFrame(dt);
       return;
     }
 
@@ -297,7 +309,7 @@ class Game {
       this.effects.update(dt);
       this.updateCamera(dt);
       this.input.endFrame();
-      this.renderer.render(this.scene, this.camera);
+      this.renderFrame(dt);
       return;
     }
 
@@ -337,7 +349,58 @@ class Game {
       this.playtime += d;
     }
     this.input.endFrame();
-    this.renderer.render(this.scene, this.camera);
+    this.renderFrame(dt);
+  }
+
+  // ============================================================== render
+  /** Desenha um quadro com o pipeline cinematográfico (bloom, raios, grading). */
+  renderFrame(dt = 0) {
+    this.updatePostFX();
+    if (this.postfx) this.postfx.render(dt);
+    else this.renderer.render(this.scene, this.camera);
+
+    this.shadowTimer = (this.shadowTimer || 0) - dt;
+    if (this.shadowTimer <= 0) {
+      this.shadowTimer = 2.5;
+      this.applyShadowFlags();
+    }
+  }
+
+  /** Mantém o sol na tela sincronizado com os raios de luz e o grading. */
+  updatePostFX() {
+    const a = this.atmosphere;
+    if (!this.postfx || !a) return;
+    if (!this._camDir) { this._camDir = new THREE.Vector3(); this._sunProbe = new THREE.Vector3(); this._sunUv = new THREE.Vector2(); }
+    this.camera.getWorldDirection(this._camDir);
+    const facing = this._camDir.dot(a.sunDir);
+    const amount = facing > 0.02 && a.sunIntensity > 0.05
+      ? Math.min(1, a.sunIntensity / 1.5) * Math.min(1, facing * 1.5)
+      : 0;
+    if (amount > 0) {
+      this._sunProbe.copy(a.sunDir).multiplyScalar(140).add(this.camera.position);
+      this._sunProbe.project(this.camera);
+      this._sunUv.set(this._sunProbe.x * 0.5 + 0.5, this._sunProbe.y * 0.5 + 0.5);
+    }
+    const weather = a.mix ? (a.mix.chuva * 0.7 + a.mix.areia * 0.8 + a.mix.neve * 0.5) : 0;
+    this.postfx.setSun(
+      amount > 0 ? this._sunUv : null,
+      amount * Math.max(0.1, 1 - weather),
+      a._cSun,
+      { warmth: a.warmth || 0, night: a.night || 0 },
+    );
+  }
+
+  /** Liga/desliga sombras em objetos novos (inimigos, projéteis, avatares). */
+  applyShadowFlags() {
+    if (!this._shadowSeen) this._shadowSeen = new WeakSet();
+    const seen = this._shadowSeen;
+    this.scene.traverse((o) => {
+      if (!o.isMesh) return;
+      if (o.userData.noShadow || seen.has(o)) return;
+      seen.add(o);
+      o.castShadow = o.name !== 'ground';
+      o.receiveShadow = true;
+    });
   }
 
   updatePlaying(dt, ctx) {
@@ -679,6 +742,7 @@ class Game {
     this.camera.aspect = window.innerWidth / window.innerHeight;
     this.camera.updateProjectionMatrix();
     this.renderer.setSize(window.innerWidth, window.innerHeight);
+    this.postfx?.setSize(window.innerWidth, window.innerHeight);
   }
 }
 

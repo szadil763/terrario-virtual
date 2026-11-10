@@ -43,6 +43,12 @@ button{font-family:inherit;font-size:1em;color:inherit;cursor:pointer;border:non
   backdrop-filter:blur(4px);
   padding:16px;overflow-y:auto;
 }
+/* a tela de título deixa o mundo 3D aparecer atrás do painel */
+#title{
+  background:radial-gradient(circle at 50% 44%,rgba(6,10,18,.18) 0%,rgba(4,6,12,.62) 58%,rgba(2,3,7,.9) 100%);
+  backdrop-filter:blur(1.5px) saturate(1.05);
+}
+#title .panel{background:rgba(14,18,26,.82);backdrop-filter:blur(10px)}
 .panel{
   width:min(560px,100%);max-height:92vh;overflow-y:auto;
   background:var(--panel);border:1px solid var(--edge);border-radius:var(--radius);
